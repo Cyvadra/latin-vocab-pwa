@@ -1,0 +1,11 @@
+# Install PyTorch from the CUDA 12.6 index: pip install -r tts/requirements.txt
+--extra-index-url https://download.pytorch.org/whl/cu126
+datasets==5.1.0
+numpy==2.5.3
+onnxruntime==1.31.0
+piper-tts==1.8.0
+scipy==1.18.1
+sentencepiece==0.2.2
+soundfile==0.14.0
+torch==2.14.1
+transformers==5.19.0

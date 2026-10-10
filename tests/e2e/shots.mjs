@@ -1,0 +1,40 @@
+// Usage: node tests/e2e/shots.mjs <baseUrl> <outDir>
+import { chromium } from "playwright-core";
+import fs from "node:fs";
+
+const [base = "http://localhost:3100", out = "/tmp/shots"] = process.argv.slice(2);
+fs.mkdirSync(out, { recursive: true });
+const browser = await chromium.launch({ executablePath: "/usr/bin/google-chrome", args: ["--no-sandbox", "--autoplay-policy=no-user-gesture-required"] });
+const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+const page = await ctx.newPage();
+const errors = [];
+page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
+page.on("pageerror", (e) => errors.push(String(e)));
+
+const shot = async (name) => page.screenshot({ path: `${out}/${name}.png` });
+await page.goto(base + "/", { waitUntil: "networkidle" });
+await page.waitForSelector("text=Start studying");
+await shot("01-home");
+await page.click("text=Start studying");
+await page.waitForSelector("text=Start studying");
+await shot("02-intro");
+await page.click("button:has-text('Start studying')");
+await page.waitForSelector("text=Show answer");
+await shot("03-card-front");
+await page.click("text=Show answer");
+await page.waitForSelector("text=Good");
+await shot("04-card-back");
+await page.click("button:has-text('Good')");
+await shot("05-next-card");
+await page.goto(base + "/words", { waitUntil: "networkidle" });
+await page.waitForSelector("li");
+await shot("06-words");
+await page.fill("input[type=search]", "amor");
+await shot("07-search");
+await page.goto(base + "/words/51", { waitUntil: "networkidle" });
+await page.waitForSelector("h1");
+await shot("08-detail");
+await page.goto(base + "/settings", { waitUntil: "networkidle" });
+await shot("09-settings");
+console.log("errors:", JSON.stringify(errors, null, 1));
+await browser.close();

@@ -1,0 +1,82 @@
+# Latin Vocab
+
+A mobile-first web app for learning the ~1,000 most common Latin words with spaced repetition and audio.
+
+- **Stack:** TypeScript, Next.js (App Router), SQLite (content), Tailwind CSS.
+- **Study:** FSRS-4.5 spaced repetition, daily new-word budget, four card styles (Latin / audio-only / meaning / mixed).
+- **Audio:** pre-generated TTS in two pronunciations, user-selectable — *classical* and *ecclesiastical*.
+- **Languages:** English and Chinese (Simplified or Traditional) UI; English, Chinese or both glosses.
+- **No accounts.** Progress lives in the browser (`localStorage`) and can be exported/imported as a JSON backup.
+- **PWA:** installable, works offline once audio is downloaded (Settings → Offline).
+
+## Quick start
+
+```bash
+npm install
+npm run data        # CSV + English glosses -> SQLite -> public/data/words.json (+ audio, see below)
+npm run dev         # http://localhost:3000
+```
+
+Production: `npm run build && npm start`. Self-hosting needs only Node and the repo; SQLite is read at build time
+(and for the per-word pages' metadata), so the running server needs no write access.
+
+## Data pipeline
+
+| Step | Command | Input → output |
+| --- | --- | --- |
+| Import | `npm run data:import` | `data/latin-core-list.csv` + `data/en/*.tsv` (English glosses) → `data/latin.db` |
+| Audio encode | `npm run data:audio` | `tts/out/<system>/<id>.wav` → `public/audio/<system>/<id>.mp3`, rows in `audio` table |
+| Export | `npm run data:build` | `data/latin.db` → `public/data/words.json` (what the client loads) |
+
+`public/audio/`, `public/data/` and `data/latin.db` are generated and git-ignored.
+
+### Schema
+
+`words(id, headword, lemma, lemma_plain, pos, pos_detail, semantic, freq_rank)`,
+`glosses(word_id, lang, text)` (`zh`, `en`; add more languages as rows),
+`audio(word_id, system, engine, path)`.
+
+## Audio pipeline (`tts/`)
+
+Python 3.12 venv with PyTorch (CUDA 12.6 wheels work on the Tesla P100) — see `tts/requirements.txt`.
+
+```bash
+python -m venv tts/.venv && tts/.venv/bin/pip install -r tts/requirements.txt
+tts/.venv/bin/python tts/generate_classical.py        # -> tts/out/classical/*.wav + report.json
+tts/.venv/bin/python tts/generate_ecclesiastical.py   # -> tts/out/ecclesiastical/*.wav + report.json
+npm run data
+```
+
+**Classical** uses [`Ken-Z/latin_SpeechT5`](https://huggingface.co/Ken-Z/latin_SpeechT5) (despite the name, a VITS model trained
+on Vox Classica; CC-BY-4.0). Notes learned the hard way:
+
+- The tokenizer silently drops macron letters (`abeō` → "abe"), so text is macron-stripped first.
+- One-letter inputs crash the model; those words are spoken with their listed variants (`ā ab abs`).
+- Each word is synthesised with up to 6 seeds (score = ASR agreement, minus a penalty for drawn-out delivery); a Latin Whisper model (`Ken-Z/latin_whisper-small`) transcribes each candidate and the
+  best match wins. Isolated words are out-of-distribution for both models, so treat `report.json` scores as a rough guide.
+
+Weak words can be re-rolled with more seeds: `python tts/generate_classical.py --seeds 16 --ids 12,34,56`. After the first full run,
+words with ASR similarity < 0.5 or unusually slow delivery were redone this way (mean similarity 0.811 → 0.822).
+
+**Ecclesiastical** has no ready-made model. `tts/ecclesiastical.py` respells Latin in Italian orthography (c/g softening,
+`ti`→`tsi`, `ae`→`e`, silent `h`, …) and marks Latin stress (derived from macrons, diphthongs and consonant clusters) with an
+accent; the Italian Piper voice `it_IT-serena-medium` (CC-BY-4.0 dataset) reads it. `python tts/test_ecclesiastical.py` checks the rules.
+
+`grecromancer` (PolyglotToolkit) was evaluated: its GitHub repository currently contains only a README stub and licence, no code or model.
+
+## Tests
+
+```bash
+npm test                      # scheduler, queue, store, formatting (node:test)
+npm run typecheck && npx eslint .
+# Browser tests (Playwright driving system Chrome) against a production server:
+npm run build && npx next start -p 3101 &
+node tests/e2e/flow.mjs    http://localhost:3101   # study session, search, settings, export/import, zh/zh-Hant
+node tests/e2e/offline.mjs http://localhost:3101   # service worker, cached pages and audio, offline study
+node tests/e2e/a11y.mjs    http://localhost:3101   # axe-core WCAG checks, light/dark, 390px and 320px widths
+```
+
+## Credits
+
+Vocabulary: Latin Core List. English glosses written for this project. Traditional Chinese converted with OpenCC. Classical audio: Ken-Z (CC-BY-4.0). Ecclesiastical audio: Piper + `serena` voice (CC-BY-4.0).
+All audio is machine-generated and may contain errors.

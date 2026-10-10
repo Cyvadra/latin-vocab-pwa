@@ -1,0 +1,41 @@
+{
+  "name": "latin-vocab",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "data:import": "tsx scripts/import-csv.ts",
+    "data:build": "tsx scripts/register-audio.ts && tsx scripts/build-data.ts",
+    "data": "npm run data:import && npm run data:audio && npm run data:build",
+    "predev": "npm run data:build",
+    "prebuild": "npm run data:build",
+    "test": "tsx --test tests/*.test.ts",
+    "typecheck": "next typegen && tsc --noEmit",
+    "data:audio": "tsx scripts/encode-audio.ts && tsx scripts/register-audio.ts",
+    "gen:zh-hant": "tsx scripts/gen-zh-hant.ts"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "next": "16.4.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "axe-core": "^4.14.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.0",
+    "opencc-js": "^1.4.2",
+    "playwright-core": "^1.64.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}
