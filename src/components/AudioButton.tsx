@@ -8,10 +8,13 @@ export default function AudioButton({
   word,
   pron,
   size = "md",
+  caption,
   className = "",
 }: {
   word: Word;
   pron: Pronunciation;
+  /** Short visible label under the button (e.g. "Classical") */
+  caption?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
@@ -20,10 +23,10 @@ export default function AudioButton({
   const dim = size === "lg" ? "h-20 w-20" : size === "md" ? "h-12 w-12" : "h-10 w-10";
   const icon = size === "lg" ? 34 : size === "md" ? 24 : 20;
 
-  return (
+  const button = (
     <button
       type="button"
-      aria-label={t("playAudio")}
+      aria-label={`${t("playAudio")} (${t(pron)})`}
       onClick={(e) => {
         e.stopPropagation();
         setPlaying(true);
@@ -44,5 +47,26 @@ export default function AudioButton({
         />
       </svg>
     </button>
+  );
+  if (!caption) return button;
+  return (
+    <span className="inline-flex flex-col items-center gap-1">
+      {button}
+      <span className="text-xs text-muted" aria-hidden="true">
+        {caption}
+      </span>
+    </span>
+  );
+}
+
+/** Both pronunciations side by side; the learner never has to choose one in settings. */
+export function AudioPair({ word, size = "md", short = false }: { word: Word; size?: "sm" | "md" | "lg"; short?: boolean }) {
+  const { t } = useT();
+  return (
+    <span className={`inline-flex items-start ${size === "sm" ? "gap-2" : "gap-5"}`}>
+      {(["classical", "ecclesiastical"] as const).map((pr) => (
+        <AudioButton key={pr} word={word} pron={pr} size={size} caption={t(short ? `${pr}Short` : pr)} />
+      ))}
+    </span>
   );
 }

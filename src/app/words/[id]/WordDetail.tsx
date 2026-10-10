@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import AudioButton from "@/components/AudioButton";
+import { AudioPair } from "@/components/AudioButton";
 import Gate from "@/components/Gate";
 import Gloss from "@/components/Gloss";
 import { formatHeadword } from "@/lib/format";
@@ -29,7 +29,7 @@ export default function WordDetail({ id }: { id: number }) {
       </div>
     );
   }
-  const { pron, gloss } = progress.settings;
+  const { gloss } = progress.settings;
   const card = progress.cards[id];
   const rows: [string, string][] = [
     [t("partOfSpeech"), tl(word.pos) + (word.detail ? ` · ${tl(word.detail)}` : "")],
@@ -52,7 +52,7 @@ export default function WordDetail({ id }: { id: number }) {
         <h1 className="font-latin text-5xl font-semibold break-words">{word.lemma}</h1>
         <p className="mt-2 font-latin text-lg text-muted">{formatHeadword(word.hw)}</p>
         <div className="mt-4 flex justify-center">
-          <AudioButton word={word} pron={pron} size="lg" />
+          <AudioPair word={word} size="lg" />
         </div>
         <Gloss word={word} mode={gloss === "zh" ? "zh" : gloss} className="mt-6 text-2xl leading-snug" />
         {gloss !== "both" && (

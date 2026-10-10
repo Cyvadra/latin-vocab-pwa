@@ -119,22 +119,6 @@ export default function Home() {
               </div>
             </div>
           )}
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <span className="text-sm">{t("pronunciation")}</span>
-            <div className="flex rounded-full bg-surface-2 p-1" role="radiogroup" aria-label={t("pronunciation")}>
-              {(["classical", "ecclesiastical"] as const).map((pr) => (
-                <button
-                  key={pr}
-                  role="radio"
-                  aria-checked={progress!.settings.pron === pr}
-                  onClick={() => updateSettings({ pron: pr })}
-                  className={`rounded-full px-3 py-1.5 text-sm ${progress!.settings.pron === pr ? "bg-accent text-accent-ink" : "text-muted"}`}
-                >
-                  {t(pr)}
-                </button>
-              ))}
-            </div>
-          </div>
           <Link href="/guide" className="mt-3 inline-block text-sm text-accent">
             {t("guideLink")} ›
           </Link>

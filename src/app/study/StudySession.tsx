@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import AudioButton from "@/components/AudioButton";
+import { AudioPair } from "@/components/AudioButton";
 import Gate from "@/components/Gate";
 import Gloss from "@/components/Gloss";
 import { playWord, primeAudio, stopAudio } from "@/lib/audio";
@@ -156,7 +156,7 @@ function Running({
 }) {
   const { t, tl } = useT();
   const progress = useProgress()!;
-  const { pron, autoplay, front: frontSetting, gloss } = progress.settings;
+  const { autoplay, front: frontSetting, gloss } = progress.settings;
   const [flipped, setFlipped] = useState(false);
   const id = queue[0];
   const word = words.get(id)!;
@@ -176,9 +176,9 @@ function Running({
     const token = `${id}:${reviewed}:${face === "meaning" ? "back" : "front"}`;
     if (shouldPlay && lastPlayed.current !== token) {
       lastPlayed.current = token;
-      void playWord(word, pron);
+      void playWord(word, "classical");
     }
-  }, [id, reviewed, face, flipped, autoplay, pron, word]);
+  }, [id, reviewed, face, flipped, autoplay, word]);
 
   useEffect(() => () => stopAudio(), []);
 
@@ -201,12 +201,14 @@ function Running({
       } else if (flipped && ["1", "2", "3", "4"].includes(e.key)) {
         rate(Number(e.key) as Rating);
       } else if (e.key === "r" || e.key === "R") {
-        void playWord(word, pron);
+        void playWord(word, "classical");
+      } else if (e.key === "e" || e.key === "E") {
+        void playWord(word, "ecclesiastical");
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [flipped, rate, word, pron]);
+  }, [flipped, rate, word]);
 
   const clock = useNow();
   const intervals = useMemo(() => previewIntervals(card, clock ?? card.last), [card, clock]);
@@ -255,7 +257,7 @@ function Running({
         {prompt && <p className="mb-5 text-sm text-muted">{prompt}</p>}
 
         {face === "listen" && !flipped ? (
-          <AudioButton word={word} pron={pron} size="lg" />
+          <AudioPair word={word} size="lg" />
         ) : null}
 
         {showLatin && (
@@ -265,7 +267,7 @@ function Running({
               <p className="mt-2 font-latin text-lg text-muted">{formatHeadword(word.hw)}</p>
             )}
             <div className="mt-4 flex justify-center">
-              <AudioButton word={word} pron={pron} />
+              <AudioPair word={word} />
             </div>
           </div>
         )}

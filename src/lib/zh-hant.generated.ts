@@ -83,6 +83,8 @@ export const strings: Record<StringKey, string> = {
   "classicalHint": "還原的古羅馬發音（v = w，c = k）",
   "ecclesiastical": "教會拉丁語",
   "ecclesiasticalHint": "教會拉丁語，義大利式（e/i 前的 c 讀 ch）",
+  "classicalShort": "古典",
+  "ecclesiasticalShort": "教會",
   "autoplay": "每張卡片自動播放發音",
   "secStudy": "學習",
   "newPerDay": "每天新詞數",

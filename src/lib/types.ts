@@ -61,7 +61,6 @@ export interface Settings {
   uiLang: Lang;
   script: Script;
   gloss: GlossMode;
-  pron: Pronunciation;
   newPerDay: number;
   autoplay: boolean;
   front: CardFront;
@@ -80,7 +79,6 @@ export const DEFAULT_SETTINGS: Settings = {
   uiLang: "en",
   script: "hans",
   gloss: "en",
-  pron: "classical",
   newPerDay: 10,
   autoplay: true,
   front: "latin",

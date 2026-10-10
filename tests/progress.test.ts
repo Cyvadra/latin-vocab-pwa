@@ -28,13 +28,13 @@ test("review updates card, daily log and counts new cards once", () => {
 
 test("export then import round-trips", () => {
   store.reviewCard(7, 4);
-  store.updateSettings({ pron: "ecclesiastical", newPerDay: 15 });
+  store.updateSettings({ autoplay: false, newPerDay: 15 });
   const text = store.exportProgress();
   store.resetProgress();
   assert.equal(store.importProgress(text), null);
   const p = JSON.parse(store.exportProgress());
   assert.ok(p.cards[7]);
-  assert.equal(p.settings.pron, "ecclesiastical");
+  assert.equal(p.settings.autoplay, false);
   assert.equal(p.settings.newPerDay, 15);
 });
 
@@ -56,15 +56,15 @@ test("import drops malformed cards and fills missing settings", () => {
       "4": { id: 4, phase: "review", due: "soon", s: 2, d: 3, reps: 1, lapses: 0, last: 1 },
     },
     log: { "2026-10-10": { reviews: 3, newCards: 1, correct: 2 }, "garbage": { reviews: 9 } },
-    settings: { pron: "ecclesiastical" },
+    settings: { newPerDay: 20 },
   });
   assert.equal(store.importProgress(text), null);
   const p = JSON.parse(store.exportProgress());
   assert.deepEqual(Object.keys(p.cards), ["1"]);
   assert.deepEqual(Object.keys(p.log), ["2026-10-10"]);
-  assert.equal(p.settings.pron, "ecclesiastical");
+  assert.equal(p.settings.newPerDay, 20);
   assert.equal(p.settings.uiLang, "en");
-  assert.equal(p.settings.newPerDay, 10);
+  assert.equal(p.settings.autoplay, true);
 });
 
 test("streak counts consecutive days and tolerates a not-yet-studied today", () => {

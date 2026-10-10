@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
-import AudioButton from "@/components/AudioButton";
+import { AudioPair } from "@/components/AudioButton";
 import Gate from "@/components/Gate";
 import { formatHeadword } from "@/lib/format";
 import { label, useT } from "@/lib/i18n";
@@ -69,7 +69,7 @@ export default function WordBrowser() {
   }, [data, progress, dq, pos, status]);
 
   if (!data || !progress) return <Gate error={error} />;
-  const { pron, gloss } = progress.settings;
+  const { gloss } = progress.settings;
   const zhOf = (w: Word) => (script === "hant" ? w.zt : w.zh);
 
   return (
@@ -125,7 +125,7 @@ export default function WordBrowser() {
                   {gloss === "zh" ? zhOf(w) : gloss === "both" ? `${w.en} · ${zhOf(w)}` : w.en}
                 </p>
               </Link>
-              <AudioButton word={w} pron={pron} size="sm" />
+              <AudioPair word={w} size="sm" short />
             </li>
           ))}
         </ul>
