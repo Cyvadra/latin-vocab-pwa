@@ -2,7 +2,9 @@
 import Link from "next/link";
 import { AudioPair } from "@/components/AudioButton";
 import Gate from "@/components/Gate";
+import Example from "@/components/Example";
 import Gloss from "@/components/Gloss";
+import Paradigm from "@/components/Paradigm";
 import { formatHeadword } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { useNow } from "@/lib/now";
@@ -59,6 +61,11 @@ export default function WordDetail({ id }: { id: number }) {
           <p className="mt-2 text-sm text-muted">{gloss === "en" ? (script === "hant" ? word.zt : word.zh) : word.en}</p>
         )}
       </div>
+      {word.ex && (
+        <div className="mt-4">
+          <Example word={word} gloss={gloss} />
+        </div>
+      )}
       <dl className="mt-4 divide-y divide-line rounded-2xl border border-line bg-surface">
         {rows.map(([k, v]) => (
           <div key={k} className="flex justify-between gap-4 px-4 py-3 text-sm">
@@ -67,6 +74,7 @@ export default function WordDetail({ id }: { id: number }) {
           </div>
         ))}
       </dl>
+      <Paradigm word={word} />
     </div>
   );
 }

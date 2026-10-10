@@ -90,7 +90,7 @@ await step("words: search by meaning and by Latin without macrons", async () => 
 await step("word detail page and audio request", async () => {
   await page.goto(base + "/words/51", { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "amor" }).waitFor();
-  await page.getByRole("button", { name: "Play audio" }).click();
+  await page.getByRole("button", { name: "Play audio (Classical)" }).click();
   await page.waitForTimeout(800);
   const hit = audioRequests.find(([u]) => u.includes("/audio/classical/51.mp3"));
   assert.ok(hit, "no audio request: " + JSON.stringify(audioRequests));
@@ -98,13 +98,14 @@ await step("word detail page and audio request", async () => {
   assert.match(hit[2], /audio/);
 });
 
-await step("ecclesiastical setting changes which audio is requested", async () => {
-  await page.goto(base + "/settings", { waitUntil: "networkidle" });
-  await page.getByRole("radio", { name: /Ecclesiastical/ }).click();
-  await page.goto(base + "/words/51", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Play audio" }).click();
+await step("both pronunciations are offered, for the word and its example sentence", async () => {
+  await page.getByRole("button", { name: "Play audio (Ecclesiastical)" }).click();
   await page.waitForTimeout(800);
-  assert.ok(audioRequests.some(([u, s]) => u.includes("/audio/ecclesiastical/51.mp3") && (s === 200 || s === 206)));
+  await page.getByRole("button", { name: "Play sentence (Classical)" }).click();
+  await page.waitForTimeout(800);
+  const ok = (path) => audioRequests.some(([u, s]) => u.includes(path) && (s === 200 || s === 206));
+  assert.ok(ok("/audio/ecclesiastical/51.mp3"), "word, ecclesiastical");
+  assert.ok(ok("/audio/classical/s/51.mp3"), "sentence, classical");
 });
 
 await step("switch UI to Chinese", async () => {

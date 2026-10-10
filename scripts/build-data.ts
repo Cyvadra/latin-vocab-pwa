@@ -21,12 +21,23 @@ interface WordRow {
 }
 
 const glossStmt = db.prepare("SELECT lang, text FROM glosses WHERE word_id = ?");
+const sentenceStmt = db.prepare("SELECT la, en, zh, source FROM sentences WHERE word_id = ?");
+const sentenceAudioStmt = db.prepare("SELECT system FROM sentence_audio WHERE word_id = ?");
 const audioStmt = db.prepare("SELECT system FROM audio WHERE word_id = ?");
 
 const words = (db.prepare("SELECT * FROM words ORDER BY freq_rank, id").all() as WordRow[]).map((w) => {
   const glosses = Object.fromEntries(
     (glossStmt.all(w.id) as { lang: string; text: string }[]).map((g) => [g.lang, g.text])
   );
+  const s = sentenceStmt.get(w.id) as { la: string; en: string; zh: string; source: string | null } | undefined;
+  const ex = s && {
+    la: s.la,
+    en: s.en,
+    zh: s.zh,
+    zt: toHant(s.zh),
+    src: s.source,
+    audio: (sentenceAudioStmt.all(w.id) as { system: string }[]).map((a) => a.system),
+  };
   const audio = (audioStmt.all(w.id) as { system: string }[]).map((a) => a.system);
   return {
     id: w.id,
@@ -41,6 +52,7 @@ const words = (db.prepare("SELECT * FROM words ORDER BY freq_rank, id").all() as
     zh: glosses.zh,
     zt: toHant(glosses.zh),
     audio,
+    ...(ex ? { ex } : {}),
   };
 });
 

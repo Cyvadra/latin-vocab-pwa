@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useT } from "@/lib/i18n";
-import { playWord } from "@/lib/audio";
+import { playSentence, playWord } from "@/lib/audio";
 import type { Pronunciation, Word } from "@/lib/types";
 
 export default function AudioButton({
@@ -9,10 +9,13 @@ export default function AudioButton({
   pron,
   size = "md",
   caption,
+  sentence = false,
   className = "",
 }: {
   word: Word;
   pron: Pronunciation;
+  /** Play the word's example sentence instead of the word */
+  sentence?: boolean;
   /** Short visible label under the button (e.g. "Classical") */
   caption?: string;
   size?: "sm" | "md" | "lg";
@@ -26,11 +29,11 @@ export default function AudioButton({
   const button = (
     <button
       type="button"
-      aria-label={`${t("playAudio")} (${t(pron)})`}
+      aria-label={`${t(sentence ? "playSentence" : "playAudio")} (${t(pron)})`}
       onClick={(e) => {
         e.stopPropagation();
         setPlaying(true);
-        void playWord(word, pron).finally(() => setTimeout(() => setPlaying(false), 600));
+        void (sentence ? playSentence : playWord)(word, pron).finally(() => setTimeout(() => setPlaying(false), 600));
       }}
       className={`inline-flex shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent transition active:scale-95 ${dim} ${
         playing ? "ring-2 ring-accent" : ""
@@ -60,12 +63,22 @@ export default function AudioButton({
 }
 
 /** Both pronunciations side by side; the learner never has to choose one in settings. */
-export function AudioPair({ word, size = "md", short = false }: { word: Word; size?: "sm" | "md" | "lg"; short?: boolean }) {
+export function AudioPair({
+  word,
+  size = "md",
+  short = false,
+  sentence = false,
+}: {
+  word: Word;
+  size?: "sm" | "md" | "lg";
+  short?: boolean;
+  sentence?: boolean;
+}) {
   const { t } = useT();
   return (
     <span className={`inline-flex items-start ${size === "sm" ? "gap-2" : "gap-5"}`}>
       {(["classical", "ecclesiastical"] as const).map((pr) => (
-        <AudioButton key={pr} word={word} pron={pr} size={size} caption={t(short ? `${pr}Short` : pr)} />
+        <AudioButton key={pr} word={word} pron={pr} size={size} sentence={sentence} caption={t(short ? `${pr}Short` : pr)} />
       ))}
     </span>
   );

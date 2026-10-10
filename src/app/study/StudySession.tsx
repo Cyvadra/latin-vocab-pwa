@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AudioPair } from "@/components/AudioButton";
+import Example from "@/components/Example";
 import Gate from "@/components/Gate";
 import Gloss from "@/components/Gloss";
 import { playWord, primeAudio, stopAudio } from "@/lib/audio";
@@ -280,6 +281,11 @@ function Running({
                 {word.group ? `${tl(word.group)} · ` : ""}
                 {t("rank")} #{word.rank}
               </p>
+            )}
+            {flipped && word.ex && (
+              <div className="mt-5 w-full border-t border-line pt-4">
+                <Example word={word} gloss={gloss} compact />
+              </div>
             )}
           </div>
         )}

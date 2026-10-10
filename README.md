@@ -25,6 +25,7 @@ Production: `npm run build && npm start`. Self-hosting needs only Node and the r
 | Step | Command | Input → output |
 | --- | --- | --- |
 | Import | `npm run data:import` | `data/latin-core-list.csv` + `data/en/*.tsv` (English glosses) → `data/latin.db` |
+| Sentences check | `npx tsx scripts/check-sentences.ts` | validates `data/sentences/*.tsv` (target word present, format) |
 | Audio encode | `npm run data:audio` | `tts/out/<system>/<id>.wav` → `public/audio/<system>/<id>.mp3`, rows in `audio` table |
 | Export | `npm run data:build` | `data/latin.db` → `public/data/words.json` (what the client loads) |
 
@@ -34,7 +35,16 @@ Production: `npm run build && npm start`. Self-hosting needs only Node and the r
 
 `words(id, headword, lemma, lemma_plain, pos, pos_detail, semantic, freq_rank)`,
 `glosses(word_id, lang, text)` (`zh`, `en`; add more languages as rows),
-`audio(word_id, system, engine, path)`.
+`audio(word_id, system, engine, path)`,
+`sentences(word_id, la, en, zh, source)` (one example per word; `source` is set only for genuine quotations),
+`sentence_audio(word_id, system, engine, path)`.
+
+### Forms and example sentences
+
+Declension/conjugation tables are generated in the browser by `src/lib/morph.ts` from the dictionary entry
+(principal parts, genitive, gender) — rule-based, with hand-written tables for irregular words; unsupported shapes show no table.
+Example sentences live in `data/sentences/*.tsv` (`word_id, Latin, English, Chinese, source`); they were drafted by an LLM and
+checked by `scripts/check-sentences.ts`, which uses the same inflection engine to confirm each sentence contains its word.
 
 ## Audio pipeline (`tts/`)
 
@@ -44,6 +54,8 @@ Python 3.12 venv with PyTorch (CUDA 12.6 wheels work on the Tesla P100) — see 
 python -m venv tts/.venv && tts/.venv/bin/pip install -r tts/requirements.txt
 tts/.venv/bin/python tts/generate_classical.py        # -> tts/out/classical/*.wav + report.json
 tts/.venv/bin/python tts/generate_ecclesiastical.py   # -> tts/out/ecclesiastical/*.wav + report.json
+tts/.venv/bin/python tts/generate_classical.py --sentences       # example sentences -> tts/out/classical/s/
+tts/.venv/bin/python tts/generate_ecclesiastical.py --sentences  # -> tts/out/ecclesiastical/s/
 npm run data
 ```
 

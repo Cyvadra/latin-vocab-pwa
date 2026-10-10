@@ -1,5 +1,7 @@
 """Generate classical-pronunciation audio for every word with best-of-N seed selection.
 
+With --sentences, voices the example sentences instead (tts/out/classical/s/{word_id}.wav).
+
 Each candidate is transcribed by a Latin Whisper model; the candidate whose transcript is
 closest to the target wins. Output: tts/out/classical/{word_id}.wav and report.json.
 """
@@ -21,11 +23,15 @@ ap.add_argument("--noise", type=float, default=0.3)
 ap.add_argument("--out", default="tts/out/classical")
 ap.add_argument("--redo", action="store_true")
 ap.add_argument("--ids", help="comma-separated word ids to (re)generate")
+ap.add_argument("--sentences", action="store_true", help="voice example sentences instead of words")
 args = ap.parse_args()
 
-out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
+out = Path(args.out) / ("s" if args.sentences else ""); out.mkdir(parents=True, exist_ok=True)
 db = sqlite3.connect("data/latin.db")
-rows = db.execute("select id, lemma, headword from words order by freq_rank, id").fetchall()
+if args.sentences:
+    rows = db.execute("select s.word_id, s.la, '' from sentences s join words w on w.id = s.word_id order by w.freq_rank").fetchall()
+else:
+    rows = db.execute("select id, lemma, headword from words order by freq_rank, id").fetchall()
 if args.limit: rows = rows[: args.limit]
 only = {int(x) for x in args.ids.split(",")} if args.ids else None
 if only: rows = [r for r in rows if r[0] in only]
@@ -42,6 +48,8 @@ def expected_trimmed_dur(letters: int) -> float:
 
 def spoken_text(lemma: str, headword: str) -> str:
     t = normalize(lemma)
+    if args.sentences:
+        return t
     # The model needs a couple of letters of context; for 1-letter words say the listed variants.
     if len(t) < 2:
         t = normalize(" ".join(w for w in headword.split() if not w.startswith("-")))
@@ -49,9 +57,10 @@ def spoken_text(lemma: str, headword: str) -> str:
 
 t0 = time.time()
 for n, (wid, lemma, hw) in enumerate(rows, 1):
-    if str(wid) in report and (out / f"{wid}.wav").exists() and not args.redo and not only:
-        continue
     text = spoken_text(lemma, hw)
+    # skip finished items, unless the text changed (e.g. an edited example sentence)
+    if report.get(str(wid), {}).get("text") == text and (out / f"{wid}.wav").exists() and not args.redo and not only:
+        continue
     target = text.replace(" ", "")
     best = None
     for seed in range(args.seeds):
@@ -60,11 +69,13 @@ for n, (wid, lemma, hw) in enumerate(rows, 1):
         except ValueError:
             break
         dur = len(wav) / tts.sr
-        got = asr({"raw": wav, "sampling_rate": tts.sr}, generate_kwargs={"max_new_tokens": 10, "num_beams": 1})["text"]
+        got = asr({"raw": wav, "sampling_rate": tts.sr}, generate_kwargs={"max_new_tokens": 80 if args.sentences else 10, "num_beams": 1})["text"]
         got_n = normalize(got).replace(" ", "")
         sim = difflib.SequenceMatcher(None, target, got_n).ratio()
         trimmed = len(trim_and_polish(wav, tts.sr)) / tts.sr - 0.24
         slow = trimmed / expected_trimmed_dur(len(target))
+        if args.sentences:
+            slow = 1.0  # duration model was fitted on isolated words
         score = sim - 0.8 * max(0.0, slow - 1.3) - (0.3 if trimmed < 0.2 else 0)
         if best is None or score > best["score"]:
             best = dict(seed=seed, sim=round(sim, 3), score=round(score, 3), dur=round(dur, 2), asr=got_n, wav=wav)

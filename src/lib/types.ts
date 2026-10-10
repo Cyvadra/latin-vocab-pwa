@@ -11,6 +11,19 @@ export interface Label {
   zt: string;
 }
 
+export interface Example {
+  /** Latin sentence, with macrons */
+  la: string;
+  en: string;
+  zh: string;
+  /** Traditional Chinese translation */
+  zt: string;
+  /** Citation for a genuine quotation; null for constructed sentences */
+  src: string | null;
+  /** Pronunciation systems with a recording of the sentence */
+  audio: Pronunciation[];
+}
+
 export interface Word {
   id: number;
   /** Full dictionary entry, e.g. "abeō -īre -iī -itum" */
@@ -30,6 +43,8 @@ export interface Word {
   zt: string;
   /** Pronunciation systems with an audio file available */
   audio: Pronunciation[];
+  /** Example sentence */
+  ex?: Example;
 }
 
 export type CardPhase = "new" | "learning" | "review";

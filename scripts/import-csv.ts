@@ -76,6 +76,20 @@ db.exec(`
     path    TEXT NOT NULL,             -- relative to public/audio
     PRIMARY KEY (word_id, system)
   );
+  CREATE TABLE sentences (
+    word_id INTEGER PRIMARY KEY REFERENCES words(id),
+    la      TEXT NOT NULL,             -- Latin, with macrons
+    en      TEXT NOT NULL,
+    zh      TEXT NOT NULL,
+    source  TEXT                       -- citation for genuine quotations; NULL if constructed
+  );
+  CREATE TABLE sentence_audio (
+    word_id INTEGER NOT NULL REFERENCES sentences(word_id),
+    system  TEXT NOT NULL,
+    engine  TEXT NOT NULL,
+    path    TEXT NOT NULL,             -- relative to public/audio
+    PRIMARY KEY (word_id, system)
+  );
   CREATE INDEX idx_words_rank ON words(freq_rank);
   CREATE INDEX idx_words_plain ON words(lemma_plain);
 `);
@@ -102,5 +116,30 @@ db.transaction(() => {
   }
 })();
 
+// Example sentences: data/sentences/*.tsv = word_id, Latin, English, Chinese, source (see scripts/check-sentences.ts)
+const sentDir = path.join(root, "data", "sentences");
+const insSentence = db.prepare("INSERT INTO sentences (word_id, la, en, zh, source) VALUES (?,?,?,?,?)");
+let sentences = 0;
+const wordIds = new Set((db.prepare("SELECT id FROM words").all() as { id: number }[]).map((r) => r.id));
+const done = new Set<number>();
+db.transaction(() => {
+  if (!fs.existsSync(sentDir)) return;
+  for (const f of fs.readdirSync(sentDir).filter((f) => f.endsWith(".tsv")).sort()) {
+    for (const line of fs.readFileSync(path.join(sentDir, f), "utf8").split("\n")) {
+      if (!line.trim() || line.startsWith("#")) continue;
+      const [id, la, en, zh, source] = line.split("\t").map((c) => c?.trim());
+      // malformed rows are skipped (run scripts/check-sentences.ts for details) rather than failing the build
+      const bad = !wordIds.has(Number(id)) ? "unknown word id" : !la || !en || !zh ? "empty field" : done.has(Number(id)) ? "duplicate" : null;
+      if (bad) {
+        console.warn(`skipping ${f}: ${bad}: ${line.slice(0, 60)}`);
+        continue;
+      }
+      done.add(Number(id));
+      insSentence.run(Number(id), la, en, zh, source || null);
+      sentences++;
+    }
+  }
+})();
+
 const n = (db.prepare("SELECT COUNT(*) c FROM words").get() as { c: number }).c;
-console.log(`Imported ${n} words -> ${dbPath}`);
+console.log(`Imported ${n} words, ${sentences} sentences -> ${dbPath}`);

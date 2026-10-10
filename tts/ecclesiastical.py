@@ -153,3 +153,8 @@ def respell_word(word: str) -> str:
 
 def respell(text: str) -> str:
     return " ".join(respell_word(w) for w in re.split(r"[\s,;]+", text) if w and not w.startswith("-"))
+
+
+def respell_sentence(text: str) -> str:
+    """Respell every word but keep punctuation, so the voice pauses at commas and full stops."""
+    return re.sub(r"[^\W\d_]+", lambda m: respell_word(m.group()), text)

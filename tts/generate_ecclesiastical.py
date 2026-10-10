@@ -1,6 +1,7 @@
 """Generate ecclesiastical-pronunciation audio: Latin -> Italian respelling -> Piper Italian voice.
 
 Output: tts/out/ecclesiastical/{word_id}.wav and report.json (with an ASR agreement score).
+With --sentences, voices the example sentences instead (tts/out/ecclesiastical/s/{word_id}.wav).
 """
 import argparse, difflib, json, sqlite3, sys, unicodedata
 from pathlib import Path
@@ -11,7 +12,7 @@ from scipy.signal import resample_poly
 
 sys.path.insert(0, str(Path(__file__).parent))
 from audio_utils import trim_and_polish
-from ecclesiastical import respell
+from ecclesiastical import respell, respell_sentence
 from piper import PiperVoice, SynthesisConfig
 
 ap = argparse.ArgumentParser()
@@ -19,11 +20,15 @@ ap.add_argument("--limit", type=int, default=0)
 ap.add_argument("--voice", default="tts/cache/piper/it_IT-serena-medium.onnx")
 ap.add_argument("--out", default="tts/out/ecclesiastical")
 ap.add_argument("--no-asr", action="store_true")
+ap.add_argument("--sentences", action="store_true", help="voice example sentences instead of words")
 args = ap.parse_args()
 
-out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
+out = Path(args.out) / ("s" if args.sentences else ""); out.mkdir(parents=True, exist_ok=True)
 db = sqlite3.connect("data/latin.db")
-rows = db.execute("select id, lemma, headword from words order by freq_rank, id").fetchall()
+if args.sentences:
+    rows = db.execute("select s.word_id, s.la, s.la from sentences s join words w on w.id = s.word_id order by w.freq_rank").fetchall()
+else:
+    rows = db.execute("select id, lemma, headword from words order by freq_rank, id").fetchall()
 if args.limit: rows = rows[: args.limit]
 
 voice = PiperVoice.load(args.voice)
@@ -40,8 +45,11 @@ def plain(s: str) -> str:
 report = {}
 for n, (wid, lemma, hw) in enumerate(rows, 1):
     # one-letter lemmas (ā, ē) are unspeakable alone: say the listed variants ("ā ab abs")
-    source = lemma if len(plain(lemma)) > 1 else " ".join(w for w in hw.split() if not w.startswith("-"))
-    text = respell(source)
+    if args.sentences:
+        text = respell_sentence(lemma)
+    else:
+        source = lemma if len(plain(lemma)) > 1 else " ".join(w for w in hw.split() if not w.startswith("-"))
+        text = respell(source)
     chunks = [c.audio_float_array for c in voice.synthesize(text, cfg)]
     wav = np.concatenate(chunks)
     sr = voice.config.sample_rate
@@ -50,7 +58,7 @@ for n, (wid, lemma, hw) in enumerate(rows, 1):
     if asr:
         pcm = sf.read(out / f"{wid}.wav")[0].astype(np.float32)
         pcm16 = resample_poly(pcm, 16000, sr).astype(np.float32)
-        res = asr({"raw": pcm16, "sampling_rate": 16000}, generate_kwargs={"language": "it", "task": "transcribe", "max_new_tokens": 12})
+        res = asr({"raw": pcm16, "sampling_rate": 16000}, generate_kwargs={"language": "it", "task": "transcribe", "max_new_tokens": 80 if args.sentences else 12})
         entry["asr"] = plain(res["text"])
         entry["sim"] = round(difflib.SequenceMatcher(None, plain(text), entry["asr"]).ratio(), 3)
     report[str(wid)] = entry

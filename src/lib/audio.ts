@@ -7,6 +7,10 @@ export function audioUrl(id: number, pron: Pronunciation): string {
   return `/audio/${pron}/${id}.mp3`;
 }
 
+export function sentenceAudioUrl(id: number, pron: Pronunciation): string {
+  return `/audio/${pron}/s/${id}.mp3`;
+}
+
 // 0.05 s of silence. Playing it inside a tap unlocks the shared element for later programmatic play (iOS Safari).
 const SILENCE =
   "data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YRAAAACAgICAgICAgICAgICAgICA";
@@ -30,9 +34,9 @@ export function stopAudio() {
   if (typeof speechSynthesis !== "undefined") speechSynthesis.cancel();
 }
 
-function speakFallback(word: Word, pron: Pronunciation): boolean {
+function speakFallback(text: string, pron: Pronunciation): boolean {
   if (typeof speechSynthesis === "undefined") return false;
-  const u = new SpeechSynthesisUtterance(word.lemma);
+  const u = new SpeechSynthesisUtterance(text);
   // Few devices ship a Latin voice; Italian is a close match for ecclesiastical Latin.
   u.lang = pron === "ecclesiastical" ? "it-IT" : "la";
   u.rate = 0.85;
@@ -41,18 +45,28 @@ function speakFallback(word: Word, pron: Pronunciation): boolean {
   return true;
 }
 
-/** Play a word's recording. Resolves true if a recording (or fallback voice) started. */
-export async function playWord(word: Word, pron: Pronunciation): Promise<boolean> {
+async function play(url: string | null, text: string, pron: Pronunciation): Promise<boolean> {
   stopAudio();
-  if (word.audio.includes(pron)) {
+  if (url) {
     try {
       el ??= new Audio();
-      el.src = audioUrl(word.id, pron);
+      el.src = url;
       await el.play();
       return true;
     } catch {
       /* autoplay blocked or file missing: fall through */
     }
   }
-  return speakFallback(word, pron);
+  return speakFallback(text, pron);
+}
+
+/** Play a word's recording. Resolves true if a recording (or fallback voice) started. */
+export function playWord(word: Word, pron: Pronunciation): Promise<boolean> {
+  return play(word.audio.includes(pron) ? audioUrl(word.id, pron) : null, word.lemma, pron);
+}
+
+/** Play the word's example sentence. */
+export function playSentence(word: Word, pron: Pronunciation): Promise<boolean> {
+  if (!word.ex) return Promise.resolve(false);
+  return play(word.ex.audio.includes(pron) ? sentenceAudioUrl(word.id, pron) : null, word.ex.la, pron);
 }

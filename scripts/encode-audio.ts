@@ -17,7 +17,8 @@ function encode(src: string, dst: string): Promise<void> {
 
 async function main() {
   const jobs: [string, string][] = [];
-  for (const system of SYSTEMS) {
+  // words: tts/out/<system>/*.wav; example sentences: tts/out/<system>/s/*.wav
+  for (const system of SYSTEMS.flatMap((s) => [s, `${s}/s`])) {
     const inDir = path.join(root, "tts", "out", system);
     if (!fs.existsSync(inDir)) continue;
     const outDir = path.join(root, "public", "audio", system);
