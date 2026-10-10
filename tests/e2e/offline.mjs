@@ -29,7 +29,7 @@ await step("download audio for offline use", async () => {
   await page.goto(base + "/settings", { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Download audio" }).click();
   await page.getByText("Audio saved for offline use.").waitFor({ timeout: 60000 });
-  const n = await page.evaluate(async () => (await (await caches.open("latin-audio-v1")).keys()).length);
+  const n = await page.evaluate(async () => (await (await caches.open("latin-audio-v2")).keys()).length);
   assert.ok(n > 900, `cached ${n} audio files`);
 });
 

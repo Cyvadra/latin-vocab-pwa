@@ -1,7 +1,7 @@
 "use client";
 import { useSyncExternalStore } from "react";
 import { newCard, schedule, type Rating } from "./fsrs";
-import { DEFAULT_SETTINGS, type CardState, type DayLog, type Progress, type Settings } from "./types";
+import { DEFAULT_SETTINGS, SPEECH_RATES, type CardState, type DayLog, type Progress, type Settings } from "./types";
 
 import { addDays, dayKey } from "./progress-store-pure";
 export { addDays, dayKey };
@@ -19,6 +19,12 @@ const emptyProgress = (): Progress => ({
   settings: { ...DEFAULT_SETTINGS },
   updatedAt: 0,
 });
+
+/** Imported/stored settings may come from older versions or hand-edited files. */
+function sanitizeSettings(s: Settings): Settings {
+  const rate = (SPEECH_RATES as readonly number[]).includes(s.speechRate) ? s.speechRate : DEFAULT_SETTINGS.speechRate;
+  return { ...s, speechRate: rate };
+}
 
 /** Validate and normalise untrusted data (from storage or an imported file). */
 export function parseProgress(raw: unknown): Progress | null {
@@ -45,7 +51,7 @@ export function parseProgress(raw: unknown): Progress | null {
     version: 1,
     cards,
     log,
-    settings: { ...DEFAULT_SETTINGS, ...(r.settings ?? {}) },
+    settings: sanitizeSettings({ ...DEFAULT_SETTINGS, ...(r.settings ?? {}) }),
     updatedAt: typeof r.updatedAt === "number" ? r.updatedAt : 0,
   };
 }
@@ -94,6 +100,11 @@ function subscribe(cb: () => void) {
     listeners.delete(cb);
     window.removeEventListener("storage", onStorage);
   };
+}
+
+/** Current settings outside React (defaults during SSR). */
+export function getSettings(): Settings {
+  return typeof window === "undefined" ? DEFAULT_SETTINGS : current().settings;
 }
 
 /** Returns null during SSR/hydration, then the stored progress. */

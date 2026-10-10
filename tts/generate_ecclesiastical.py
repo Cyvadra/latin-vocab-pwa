@@ -32,7 +32,8 @@ else:
 if args.limit: rows = rows[: args.limit]
 
 voice = PiperVoice.load(args.voice)
-cfg = SynthesisConfig(length_scale=1.25, noise_scale=0.4, noise_w_scale=0.5)
+# 1.25 came out much faster than the classical voice; 2.0 roughly matches its pace.
+cfg = SynthesisConfig(length_scale=2.0, noise_scale=0.4, noise_w_scale=0.5)
 asr = None
 if not args.no_asr:
     from transformers import pipeline

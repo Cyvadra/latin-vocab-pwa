@@ -1,7 +1,16 @@
 "use client";
-import type { Pronunciation, Word } from "./types";
+import { getSettings } from "./progress-store";
+import { SPEECH_RATES, type Pronunciation, type Word } from "./types";
 
 let el: HTMLAudioElement | null = null;
+
+export { SPEECH_RATES };
+
+/** The learner's playback speed (settings are validated on load/import, see parseProgress). */
+function userRate(): number {
+  const r = getSettings().speechRate;
+  return (SPEECH_RATES as readonly number[]).includes(r) ? r : 1;
+}
 
 export function audioUrl(id: number, pron: Pronunciation): string {
   return `/audio/${pron}/${id}.mp3`;
@@ -39,7 +48,7 @@ function speakFallback(text: string, pron: Pronunciation): boolean {
   const u = new SpeechSynthesisUtterance(text);
   // Few devices ship a Latin voice; Italian is a close match for ecclesiastical Latin.
   u.lang = pron === "ecclesiastical" ? "it-IT" : "la";
-  u.rate = 0.85;
+  u.rate = 0.85 * userRate();
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
   return true;
@@ -51,6 +60,9 @@ async function play(url: string | null, text: string, pron: Pronunciation): Prom
     try {
       el ??= new Audio();
       el.src = url;
+      // set after src: some browsers reset playbackRate on load
+      el.preservesPitch = true;
+      el.playbackRate = el.defaultPlaybackRate = userRate();
       await el.play();
       return true;
     } catch {

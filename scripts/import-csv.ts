@@ -90,6 +90,13 @@ db.exec(`
     path    TEXT NOT NULL,             -- relative to public/audio
     PRIMARY KEY (word_id, system)
   );
+  CREATE TABLE derivatives (
+    word_id INTEGER PRIMARY KEY REFERENCES words(id),
+    en      TEXT,                      -- comma-separated English derivatives
+    it      TEXT,                      -- Italian / Spanish / French descendant
+    es      TEXT,
+    fr      TEXT
+  );
   CREATE INDEX idx_words_rank ON words(freq_rank);
   CREATE INDEX idx_words_plain ON words(lemma_plain);
 `);
@@ -141,5 +148,30 @@ db.transaction(() => {
   }
 })();
 
+// Derivatives: data/derivatives/*.tsv = word_id, English (comma-separated), Italian, Spanish, French
+const derDir = path.join(root, "data", "derivatives");
+const insDerivative = db.prepare("INSERT INTO derivatives (word_id, en, it, es, fr) VALUES (?,?,?,?,?)");
+let derivatives = 0;
+const derDone = new Set<number>();
+db.transaction(() => {
+  if (!fs.existsSync(derDir)) return;
+  for (const f of fs.readdirSync(derDir).filter((f) => f.endsWith(".tsv")).sort()) {
+    for (const line of fs.readFileSync(path.join(derDir, f), "utf8").split("\n")) {
+      if (!line.trim() || line.startsWith("#")) continue;
+      const [id, en, it, es, fr] = line.split("\t").map((c) => c?.trim() || null);
+      const bad = !wordIds.has(Number(id)) ? "unknown word id" : derDone.has(Number(id)) ? "duplicate" : null;
+      if (bad) {
+        console.warn(`skipping ${f}: ${bad}: ${line.slice(0, 60)}`);
+        continue;
+      }
+      derDone.add(Number(id));
+      if (en || it || es || fr) {
+        insDerivative.run(Number(id), en, it, es, fr);
+        derivatives++;
+      }
+    }
+  }
+})();
+
 const n = (db.prepare("SELECT COUNT(*) c FROM words").get() as { c: number }).c;
-console.log(`Imported ${n} words, ${sentences} sentences -> ${dbPath}`);
+console.log(`Imported ${n} words, ${sentences} sentences, ${derivatives} derivative rows -> ${dbPath}`);

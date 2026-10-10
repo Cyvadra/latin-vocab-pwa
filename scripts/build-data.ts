@@ -21,6 +21,7 @@ interface WordRow {
 }
 
 const glossStmt = db.prepare("SELECT lang, text FROM glosses WHERE word_id = ?");
+const derStmt = db.prepare("SELECT en, it, es, fr FROM derivatives WHERE word_id = ?");
 const sentenceStmt = db.prepare("SELECT la, en, zh, source FROM sentences WHERE word_id = ?");
 const sentenceAudioStmt = db.prepare("SELECT system FROM sentence_audio WHERE word_id = ?");
 const audioStmt = db.prepare("SELECT system FROM audio WHERE word_id = ?");
@@ -38,6 +39,13 @@ const words = (db.prepare("SELECT * FROM words ORDER BY freq_rank, id").all() as
     src: s.source,
     audio: (sentenceAudioStmt.all(w.id) as { system: string }[]).map((a) => a.system),
   };
+  const d = derStmt.get(w.id) as { en: string | null; it: string | null; es: string | null; fr: string | null } | undefined;
+  const der = d && {
+    ...(d.en ? { en: d.en.split(/,\s*/) } : {}),
+    ...(d.it ? { it: d.it } : {}),
+    ...(d.es ? { es: d.es } : {}),
+    ...(d.fr ? { fr: d.fr } : {}),
+  };
   const audio = (audioStmt.all(w.id) as { system: string }[]).map((a) => a.system);
   return {
     id: w.id,
@@ -53,6 +61,7 @@ const words = (db.prepare("SELECT * FROM words ORDER BY freq_rank, id").all() as
     zt: toHant(glosses.zh),
     audio,
     ...(ex ? { ex } : {}),
+    ...(der ? { der } : {}),
   };
 });
 

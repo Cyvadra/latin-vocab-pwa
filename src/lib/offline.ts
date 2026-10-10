@@ -1,7 +1,7 @@
 import { audioUrl, sentenceAudioUrl } from "./audio";
 import type { Word } from "./types";
 
-export const AUDIO_CACHE = "latin-audio-v1";
+export const AUDIO_CACHE = "latin-audio-v2";
 
 /** Fetch every recording (words and example sentences, both pronunciations) into the Cache Storage used by the service worker. */
 export async function downloadAudio(

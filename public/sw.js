@@ -1,8 +1,8 @@
 // Service worker: offline shell, cached word list, and range-capable audio cache.
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL_CACHE = `latin-shell-${VERSION}`;
-const AUDIO_CACHE = "latin-audio-v1"; // shared with src/lib/offline.ts
-const PRECACHE = ["/", "/study", "/words", "/settings", "/data/words.json", "/icons/icon-192.png"];
+const AUDIO_CACHE = "latin-audio-v2"; // shared with src/lib/offline.ts
+const PRECACHE = ["/", "/study", "/words", "/settings", "/drill", "/data/words.json", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -17,7 +17,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("latin-shell-") && k !== SHELL_CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => (k.startsWith("latin-shell-") && k !== SHELL_CACHE) || (k.startsWith("latin-audio-") && k !== AUDIO_CACHE)).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });

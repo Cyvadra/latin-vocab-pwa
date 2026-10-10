@@ -125,6 +125,16 @@ export default function Home() {
         </section>
       )}
 
+      <Link href="/drill" className="flex items-center justify-between rounded-2xl border border-line bg-surface p-4 active:bg-surface-2">
+        <span>
+          <span className="block font-medium">{t("drillLink")}</span>
+          <span className="block text-sm text-muted">{t("drillLinkHint")}</span>
+        </span>
+        <span className="text-xl text-accent" aria-hidden="true">
+          ›
+        </span>
+      </Link>
+
       <section aria-label={t("progressTitle")} className="grid grid-cols-2 gap-3">
         <Stat label={t("streak")} value={streak} />
         <Stat label={t("learned")} value={`${stats.learned} ${t("of")} ${total}`} />

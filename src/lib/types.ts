@@ -45,6 +45,8 @@ export interface Word {
   audio: Pronunciation[];
   /** Example sentence */
   ex?: Example;
+  /** Descendants: English words, and the Italian/Spanish/French word */
+  der?: { en?: string[]; it?: string; es?: string; fr?: string };
 }
 
 export type CardPhase = "new" | "learning" | "review";
@@ -80,6 +82,8 @@ export interface Settings {
   autoplay: boolean;
   front: CardFront;
   theme: "system" | "light" | "dark";
+  /** Playback speed multiplier for recordings and the fallback voice; one of SPEECH_RATES. */
+  speechRate: number;
 }
 
 export interface Progress {
@@ -90,6 +94,8 @@ export interface Progress {
   updatedAt: number;
 }
 
+export const SPEECH_RATES = [0.6, 0.75, 0.9, 1, 1.15, 1.3] as const;
+
 export const DEFAULT_SETTINGS: Settings = {
   uiLang: "en",
   script: "hans",
@@ -98,4 +104,5 @@ export const DEFAULT_SETTINGS: Settings = {
   autoplay: true,
   front: "latin",
   theme: "system",
+  speechRate: 1,
 };

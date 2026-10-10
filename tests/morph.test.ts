@@ -77,3 +77,44 @@ test("review fixes: 3rd-declension genitive splicing, semi-deponents, aliquis", 
   assert.ok(!audeo.some((s) => s.title === "indicativePassive"));
   assert.match(forms(paradigm("aliquis -quae -quod", "pronoun")), /^aliquis aliqua aliquid alicuius/);
 });
+
+test("drill: questions have one right word, a right parse, and no ambiguous distractor", async () => {
+  const { cells, makeQuestion } = await import("../src/lib/drill");
+  const word = (id: number, hw: string, pos: string, detail?: string) => ({
+    id, hw, lemma: hw.split(" ")[0], plain: hw.split(" ")[0], rank: id, en: "", zh: "", zt: "", audio: [], group: null,
+    pos: { en: pos, zh: "", zt: "" }, detail: detail ? { en: detail, zh: "", zt: "" } : null,
+  });
+  const pool = [
+    word(1, "rēx rēgis m.", "noun"), word(2, "terra -ae f.", "noun"), word(3, "animus -ī m.", "noun"),
+    word(4, "manus -ūs f.", "noun"), word(5, "amō amāre amāvī amātum", "verb", "1st conjugation"),
+  ];
+  let seed = 1;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let k = 0; k < 50; k++) {
+    for (const w of pool) {
+      const q = makeQuestion(w, pool, rnd)!;
+      assert.ok(q.words.some((x) => x.id === w.id) && q.words.length === 4);
+      const all = cells(paradigm(w.hw, w.pos.en, w.detail?.en)!);
+      const fits = (p: string[]) => all.some((c) => c.form === q.form && c.parse.join() === p.join());
+      assert.ok(fits(q.parses[q.answer]), `${q.form}: answer must fit`);
+      q.parses.forEach((p, i) => i !== q.answer && assert.ok(!fits(p), `${q.form}: distractor ${p} also fits`));
+    }
+  }
+});
+
+test("drill: a choice of word never includes another word that also yields the form", async () => {
+  const { makeQuestion } = await import("../src/lib/drill");
+  const word = (id: number, hw: string, pos: string, detail?: string) => ({
+    id, hw, lemma: hw.split(" ")[0], plain: hw.split(" ")[0], rank: id, en: "", zh: "", zt: "", audio: [], group: null,
+    pos: { en: pos, zh: "", zt: "" }, detail: detail ? { en: detail, zh: "", zt: "" } : null,
+  });
+  const lex = word(1, "lēx lēgis f.", "noun");
+  const lego = word(2, "legō legere lēgī lēctum", "verb", "3rd conjugation (-ō)");
+  const pool = [lex, lego, word(3, "rēx rēgis m.", "noun"), word(4, "terra -ae f.", "noun"), word(5, "animus -ī m.", "noun"), word(6, "amō amāre amāvī amātum", "verb")];
+  let seed = 7;
+  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let k = 0; k < 200; k++) {
+    const q = makeQuestion(lex, pool, rnd);
+    if (q && q.form === "lēgis") assert.ok(!q.words.some((w) => w.id === lego.id), "legō offered for lēgis");
+  }
+});

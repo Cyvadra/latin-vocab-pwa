@@ -108,6 +108,20 @@ await step("both pronunciations are offered, for the word and its example senten
   assert.ok(ok("/audio/classical/s/51.mp3"), "sentence, classical");
 });
 
+await step("form drill: a full round, then the related-words section", async () => {
+  await page.goto(base + "/drill", { waitUntil: "networkidle" });
+  // a round has up to 10 questions (fewer when few words have been studied)
+  for (let q = 0; q < 10 && !(await page.getByText("Round complete").isVisible()); q++) {
+    await page.locator("section").nth(0).getByRole("button").first().click();
+    await page.locator("section").nth(1).getByRole("button").first().click();
+    await page.getByRole("button", { name: "Next" }).click();
+  }
+  await page.getByText("Round complete").waitFor({ timeout: 2000 });
+  await page.goto(base + "/words/761", { waitUntil: "networkidle" });
+  await page.getByText("Related words").waitFor();
+  await page.getByText("regal, royal, reign").waitFor();
+});
+
 await step("switch UI to Chinese", async () => {
   await page.goto(base + "/settings", { waitUntil: "networkidle" });
   await page.getByRole("radio", { name: "中文" }).first().click();

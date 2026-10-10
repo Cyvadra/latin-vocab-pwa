@@ -8,8 +8,35 @@ import Paradigm from "@/components/Paradigm";
 import { formatHeadword } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { useNow } from "@/lib/now";
+import type { StringKey } from "@/lib/strings";
+import type { Word } from "@/lib/types";
 import { useProgress } from "@/lib/progress-store";
 import { useWords } from "@/lib/words-client";
+
+const ROMANCE = { it: "derivativesIt", es: "derivativesEs", fr: "derivativesFr" } as const satisfies Record<string, StringKey>;
+
+function Derivatives({ der }: { der: NonNullable<Word["der"]> }) {
+  const { t } = useT();
+  const rows: [StringKey, string][] = [
+    ...(der.en ? ([["derivativesEn", der.en.join(", ")]] as [StringKey, string][]) : []),
+    ...(["it", "es", "fr"] as const)
+      .filter((k) => der[k])
+      .map((k): [StringKey, string] => [ROMANCE[k], der[k]!]),
+  ];
+  return (
+    <section className="mt-4 rounded-2xl border border-line bg-surface p-4">
+      <h2 className="mb-2 text-sm font-semibold">{t("derivativesTitle")}</h2>
+      <dl className="space-y-1.5 text-sm">
+        {rows.map(([k, v]) => (
+          <div key={k} className="flex gap-3">
+            <dt className="w-20 shrink-0 text-muted">{t(k)}</dt>
+            <dd>{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
 
 export default function WordDetail({ id }: { id: number }) {
   const { t, tl, script } = useT();
@@ -66,6 +93,7 @@ export default function WordDetail({ id }: { id: number }) {
           <Example word={word} gloss={gloss} />
         </div>
       )}
+      {word.der && <Derivatives der={word.der} />}
       <dl className="mt-4 divide-y divide-line rounded-2xl border border-line bg-surface">
         {rows.map(([k, v]) => (
           <div key={k} className="flex justify-between gap-4 px-4 py-3 text-sm">

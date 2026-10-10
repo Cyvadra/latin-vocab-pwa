@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import Gate from "@/components/Gate";
 import { useT, type StringKey } from "@/lib/i18n";
+import { SPEECH_RATES } from "@/lib/audio";
 import { downloadAudio } from "@/lib/offline";
 import { dayKey } from "@/lib/progress-store-pure";
 import { exportProgress, importProgress, resetProgress, updateSettings, useProgress } from "@/lib/progress-store";
@@ -197,6 +198,20 @@ export default function SettingsForm() {
             className="h-6 w-6 accent-[var(--accent)]"
             aria-label={t("autoplay")}
           />
+        </Row>
+        <Row label={t("speechRate")}>
+          <select
+            value={String(s.speechRate)}
+            onChange={(e) => set("speechRate")(Number(e.target.value))}
+            className="rounded-full border border-line bg-surface-2 px-3 py-1.5 text-sm"
+            aria-label={t("speechRate")}
+          >
+            {SPEECH_RATES.map((r) => (
+              <option key={r} value={r}>
+                {r}×
+              </option>
+            ))}
+          </select>
         </Row>
       </Section>
 

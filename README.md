@@ -37,7 +37,7 @@ Production: `npm run build && npm start`. Self-hosting needs only Node and the r
 `glosses(word_id, lang, text)` (`zh`, `en`; add more languages as rows),
 `audio(word_id, system, engine, path)`,
 `sentences(word_id, la, en, zh, source)` (one example per word; `source` is set only for genuine quotations),
-`sentence_audio(word_id, system, engine, path)`.
+`sentence_audio(word_id, system, engine, path)`, `derivatives(word_id, en, it, es, fr)`.
 
 ### Forms and example sentences
 
@@ -45,6 +45,10 @@ Declension/conjugation tables are generated in the browser by `src/lib/morph.ts`
 (principal parts, genitive, gender) — rule-based, with hand-written tables for irregular words; unsupported shapes show no table.
 Example sentences live in `data/sentences/*.tsv` (`word_id, Latin, English, Chinese, source`); they were drafted by an LLM and
 checked by `scripts/check-sentences.ts`, which uses the same inflection engine to confirm each sentence contains its word.
+`/drill` (form-recognition drill) is generated from the same tables: it shows an inflected form of a studied word and asks for
+its dictionary word and its case/tense/person; forms that fill several slots accept any of them.
+Derivatives (English words; Italian/Spanish/French descendants) live in `data/derivatives/*.tsv`
+(`word_id, English, Italian, Spanish, French`; empty columns allowed) — LLM-drafted, reviewed for false cognates.
 
 ## Audio pipeline (`tts/`)
 
