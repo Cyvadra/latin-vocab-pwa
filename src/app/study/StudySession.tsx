@@ -6,6 +6,7 @@ import { AudioPair } from "@/components/AudioButton";
 import Example from "@/components/Example";
 import Gate from "@/components/Gate";
 import Gloss from "@/components/Gloss";
+import WordExtras from "@/components/WordExtras";
 import { chosenProns, playWord, primeAudio, stopAudio } from "@/lib/audio";
 import { newCard, previewIntervals, type Rating } from "@/lib/fsrs";
 import { formatHeadword, hashPick, shortInterval } from "@/lib/format";
@@ -186,6 +187,7 @@ function Running({
   const rate = useCallback(
     (rating: Rating) => {
       setFlipped(false);
+      window.scrollTo(0, 0); // the details under the card may have been scrolled into view
       onAnswer(id, rating);
     },
     [id, onAnswer]
@@ -293,7 +295,13 @@ function Running({
         {!flipped && <p className="absolute bottom-4 text-xs text-muted">{t("tapToFlip")}</p>}
       </div>
 
-      <div className="safe-bottom pt-4">
+      {flipped && (
+        <div className="pb-2">
+          <WordExtras word={word} />
+        </div>
+      )}
+
+      <div className="safe-bottom sticky bottom-0 bg-bg pt-4 pb-2">
         {flipped ? (
           <div className="grid grid-cols-4 gap-2">
             {RATINGS.map((r) => (

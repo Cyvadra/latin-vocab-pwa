@@ -64,6 +64,9 @@ await step("'learn more' pulls 5 extra new words", async () => {
 
 await step("failed card returns within the session", async () => {
   await page.getByRole("button", { name: "Show answer" }).click();
+  // the back of the card carries the word page's details, with playable forms
+  await page.getByRole("heading", { name: "Forms" }).waitFor();
+  await page.getByRole("button", { name: /^Play audio: / }).first().click();
   const firstWord = await page.locator("h1").first().innerText();
   await page.getByRole("button", { name: /^Again/ }).click();
   const seen = [];
