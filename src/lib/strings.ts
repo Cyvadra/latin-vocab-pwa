@@ -31,6 +31,7 @@ export const en = {
 
   // study
   showAnswer: "Show answer",
+  moreBelow: "Derivatives and forms below",
   tapToFlip: "Tap card or press Space",
   again: "Again",
   hard: "Hard",
@@ -83,6 +84,8 @@ export const en = {
   drillWhichWord: "Which word is this a form of?",
   drillWhichForm: "Which form is it?",
   drillNext: "Next",
+  drillRight: "Correct:",
+  drillWrong: "Not quite. The answer is",
   drillDone: "Round complete",
   drillScore: "{n} of {total} fully correct",
   drillAgain: "Another round",
@@ -237,6 +240,7 @@ export const zh: Record<StringKey, string> = {
   firstTimeHint: "从最常用的词开始。每张卡片都有发音，点按即可收听。",
 
   showAnswer: "显示答案",
+  moreBelow: "下方有派生词和词形",
   tapToFlip: "点按卡片或按空格键",
   again: "重来",
   hard: "较难",
@@ -288,6 +292,8 @@ export const zh: Record<StringKey, string> = {
   drillWhichWord: "这是哪个词的变化形式？",
   drillWhichForm: "这是什么形式？",
   drillNext: "下一题",
+  drillRight: "正确：",
+  drillWrong: "不对。正确答案是",
   drillDone: "本轮完成",
   drillScore: "完全答对 {n} / {total} 题",
   drillAgain: "再来一轮",

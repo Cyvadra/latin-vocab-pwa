@@ -2,12 +2,12 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Gate from "@/components/Gate";
+import Paradigm from "@/components/Paradigm";
 import { chosenProns, playForm } from "@/lib/audio";
 import { drillPool, makeSession, type Question } from "@/lib/drill";
 import { useT } from "@/lib/i18n";
 import { useProgress } from "@/lib/progress-store";
 import type { StringKey } from "@/lib/strings";
-import { wordHref } from "@/lib/slug";
 import { useWords } from "@/lib/words-client";
 
 const ROUND = 10;
@@ -27,14 +27,21 @@ function Option({
     wrong: "border-accent bg-accent-soft",
     dim: "border-line bg-surface opacity-50",
   }[state];
+  // aria-disabled rather than disabled: the picked button keeps focus after answering
   return (
     <button
       type="button"
-      disabled={!onClick}
+      aria-disabled={!onClick}
       onClick={onClick}
-      className={`w-full rounded-2xl border px-4 py-3 text-left transition ${tone}`}
+      className={`flex w-full items-start gap-2 rounded-2xl border px-4 py-3 text-left transition ${tone}`}
     >
-      {children}
+      <span className="min-w-0 flex-1">{children}</span>
+      {/* colour alone can't tell right from wrong */}
+      {(state === "right" || state === "wrong") && (
+        <span aria-hidden className={state === "right" ? "text-good" : "text-accent"}>
+          {state === "right" ? "✓" : "✗"}
+        </span>
+      )}
     </button>
   );
 }
@@ -87,6 +94,13 @@ export default function DrillSession() {
 
   const q = questions[i];
   const wordRight = wordPick !== null && q.words[wordPick].id === q.word.id;
+  // announced to screen readers after each pick
+  const feedback =
+    formPick !== null
+      ? `${t(formPick === q.answer ? "drillRight" : "drillWrong")} ${parse(q.parses[q.answer])}`
+      : wordPick !== null
+        ? `${t(wordRight ? "drillRight" : "drillWrong")} ${q.word.lemma}`
+        : "";
   const next = () => {
     if (wordRight && formPick === q.answer) setScore((s) => s + 1);
     setI(i + 1);
@@ -100,13 +114,23 @@ export default function DrillSession() {
         <Link href="/" className="-ml-1 p-2 text-muted" aria-label={t("exit")}>
           ✕
         </Link>
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
+        <div
+          className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2"
+          role="progressbar"
+          aria-label={t("progressTitle")}
+          aria-valuemin={0}
+          aria-valuemax={questions.length}
+          aria-valuenow={i}
+        >
           <div className="h-full rounded-full bg-accent transition-[width]" style={{ width: `${(i / questions.length) * 100}%` }} />
         </div>
         <span className="min-w-8 text-right text-sm tabular-nums text-muted">
           {i + 1}/{questions.length}
         </span>
       </div>
+      <p className="sr-only" aria-live="polite">
+        {feedback}
+      </p>
       {beginner && i === 0 && <p className="text-sm text-muted">{t("drillBeginnerHint")}</p>}
 
       <div className="rounded-3xl border border-line bg-surface p-6 text-center shadow-sm">
@@ -157,11 +181,11 @@ export default function DrillSession() {
 
       {formPick !== null && (
         <div className="space-y-3">
-          <p className="text-center text-sm">
-            <Link href={wordHref(data.slugs, q.word.id)} className="text-accent">
-              {t("drillSeeTable", { word: q.word.lemma })} ›
-            </Link>
-          </p>
+          {/* shown in place: leaving the page would lose the round */}
+          <details className="rounded-2xl border border-line bg-surface px-4 py-3">
+            <summary className="cursor-pointer text-sm text-accent">{t("drillSeeTable", { word: q.word.lemma })}</summary>
+            <Paradigm word={q.word} />
+          </details>
           <button
             type="button"
             autoFocus

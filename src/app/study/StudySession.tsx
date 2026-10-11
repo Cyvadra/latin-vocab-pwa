@@ -12,6 +12,7 @@ import { newCard, previewIntervals, type Rating } from "@/lib/fsrs";
 import { formatHeadword, hashPick, shortInterval } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { useNow } from "@/lib/now";
+import { paradigm } from "@/lib/morph";
 import { dayKey } from "@/lib/progress-store-pure";
 import { reviewCard, useProgress } from "@/lib/progress-store";
 import { buildQueue } from "@/lib/queue";
@@ -224,6 +225,9 @@ function Running({
   const prompt =
     face === "listen" && !flipped ? t("listenFront") : face === "meaning" && !flipped ? t("meaningFront") : null;
 
+  // the cue below the flipped card only when WordExtras has something to scroll to
+  const hasExtras = !!word.der || !!paradigm(word.hw, word.pos.en, word.detail?.en);
+
   return (
     <div className="flex min-h-[calc(100dvh-2rem)] flex-col">
       <div className="flex items-center gap-3 pb-3">
@@ -247,7 +251,7 @@ function Running({
 
       <div
         onClick={() => !flipped && setFlipped(true)}
-        className="relative flex flex-1 flex-col items-center justify-center rounded-3xl border border-line bg-surface p-6 text-center shadow-sm"
+        className="relative flex min-h-[calc(100dvh-11rem)] flex-1 flex-col items-center justify-center rounded-3xl border border-line bg-surface p-6 text-center shadow-sm"
       >
         <span className="absolute left-4 top-4 rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
           {badge}
@@ -293,6 +297,7 @@ function Running({
         )}
 
         {!flipped && <p className="absolute bottom-4 text-xs text-muted">{t("tapToFlip")}</p>}
+        {flipped && hasExtras && <p className="absolute bottom-4 text-xs text-muted" aria-hidden>{t("moreBelow")} ↓</p>}
       </div>
 
       {flipped && (
