@@ -56,11 +56,15 @@ export function parseProgress(raw: unknown): Progress | null {
     settings: sanitizeSettings({
       ...DEFAULT_SETTINGS,
       // settings saved before the pronunciation choice existed always showed both recordings; keep that
-      ...(r.settings && !("pron" in r.settings) ? { pron: "both" as const } : {}),
-      ...(r.settings ?? {}),
+      ...(isObj(r.settings) && !("pron" in r.settings) ? { pron: "both" as const } : {}),
+      ...(isObj(r.settings) ? r.settings : {}),
     }),
     updatedAt: typeof r.updatedAt === "number" ? r.updatedAt : 0,
   };
+}
+
+function isObj(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
 function load(): Progress {

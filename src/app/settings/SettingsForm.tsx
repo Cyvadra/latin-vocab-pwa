@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Gate from "@/components/Gate";
 import { useT, type StringKey } from "@/lib/i18n";
 import { SPEECH_RATES } from "@/lib/audio";
-import { downloadAudio, offlineAudioState } from "@/lib/offline";
+import { downloadAudio, hadLegacyDownload, offlineAudioState } from "@/lib/offline";
 import { dayKey } from "@/lib/progress-store-pure";
 import { exportProgress, importProgress, resetProgress, updateSettings, useProgress } from "@/lib/progress-store";
 import type { Settings } from "@/lib/types";
@@ -105,6 +105,10 @@ export default function SettingsForm() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [msg, setMsg] = useState<string>("");
   const [dl, setDl] = useState<number | null>(null);
+  const [legacy, setLegacy] = useState(false);
+  useEffect(() => {
+    void hadLegacyDownload().then(setLegacy);
+  }, []);
 
   if (!progress) return <Gate error={error} />;
   const s = progress.settings;
@@ -133,6 +137,7 @@ export default function SettingsForm() {
     setMsg("");
     try {
       await downloadAudio(data.words, s, setDl);
+      setLegacy(false);
       setMsg(t("downloadDone"));
     } catch {
       setMsg(t("downloadFail"));
@@ -278,7 +283,7 @@ export default function SettingsForm() {
       <Section title={t("secOffline")}>
         <div className="px-4 py-3">
           <p className="text-sm text-muted">{t("offlineHint")}</p>
-          {dl === null && offlineAudioState(s) === "stale" && (
+          {dl === null && (offlineAudioState(s) === "stale" || (legacy && offlineAudioState(s) === "none")) && (
             <p className="mt-2 text-sm text-accent">{t("offlineStale")}</p>
           )}
           <button className={`${btn} mt-3`} onClick={onDownload} disabled={dl !== null || !data}>

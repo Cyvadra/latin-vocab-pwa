@@ -82,12 +82,35 @@ export function drillPool(words: Word[], progress: Progress): { pool: Word[]; be
   // build paradigms only for words that can make it into the pool
   const studied = words.filter((w) => progress.cards[w.id] && progress.cards[w.id].phase !== "new" && paradigmOf(w));
   if (studied.length >= 8) return { pool: studied, beginner: false };
+  return { pool: beginnerPool(words), beginner: true };
+}
+
+/** The most frequent words that have a paradigm. */
+function beginnerPool(words: Word[]): Word[] {
   const pool: Word[] = [];
   for (const w of [...words].sort((a, b) => a.rank - b.rank)) {
     if (paradigmOf(w)) pool.push(w);
     if (pool.length === 60) break;
   }
-  return { pool, beginner: true };
+  return pool;
+}
+
+/**
+ * A round of up to `n` questions from the learner's studied words, topped up from the most
+ * frequent words when too few of them can be asked about (a short or empty round otherwise).
+ */
+export function makeRound(
+  words: Word[],
+  progress: Progress,
+  n: number,
+  rnd: () => number = Math.random
+): { questions: Question[]; beginner: boolean } {
+  const { pool, beginner } = drillPool(words, progress);
+  const questions = makeSession(pool, n, rnd);
+  if (beginner || questions.length === n) return { questions, beginner };
+  const used = new Set(questions.map((q) => q.word.id));
+  const extra = beginnerPool(words).filter((w) => !used.has(w.id));
+  return { questions: [...questions, ...makeSession(extra, n - questions.length, rnd)], beginner: false };
 }
 
 /** Build one question, or null if the word offers nothing to ask. `rnd` is a [0,1) random source. */
@@ -118,11 +141,17 @@ export function makeQuestion(word: Word, pool: Word[], rnd: () => number = Math.
   // other words of the same part of speech make the lemma choice non-trivial;
   // a word that can also produce this form (lēx/legō: legis) would be a second right answer, so skip it
   // (form sets are built lazily, only until three are found)
+  // options show only the lemma, so no two may read the same (mundus noun/adjective, līber/liber)
   const others: Word[] = [];
+  const shown = new Set([lemma]);
   const take = (ws: Word[]) => {
     for (const w of shuffle(ws, rnd)) {
       if (others.length === 3) return;
-      if (w.id !== word.id && !others.includes(w) && !formsOf(w).has(same)) others.push(w);
+      const l = plainLatin(w.lemma);
+      if (!shown.has(l) && !formsOf(w).has(same)) {
+        others.push(w);
+        shown.add(l);
+      }
     }
   };
   take(pool.filter((w) => w.pos.en === word.pos.en));

@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Gate from "@/components/Gate";
 import Paradigm from "@/components/Paradigm";
-import { chosenProns, playForm } from "@/lib/audio";
-import { drillPool, makeSession, type Question } from "@/lib/drill";
+import { chosenProns, playForm, stopAudio } from "@/lib/audio";
+import { makeRound, type Question } from "@/lib/drill";
 import { useT } from "@/lib/i18n";
 import { useProgress } from "@/lib/progress-store";
 import type { StringKey } from "@/lib/strings";
@@ -58,8 +58,9 @@ export default function DrillSession() {
 
   const start = () => {
     if (!data || !progress) return;
-    const { pool, beginner } = drillPool(data.words, progress);
-    setRound({ questions: makeSession(pool, ROUND), beginner });
+    stopAudio();
+    window.scrollTo(0, 0);
+    setRound(makeRound(data.words, progress, ROUND));
     setI(0);
     setWordPick(null);
     setFormPick(null);
@@ -68,6 +69,17 @@ export default function DrillSession() {
   // questions are random, so build them on the client after mount (never during render)
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => start(), [!!data, !!progress]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => stopAudio(), []);
+
+  // bring each newly revealed step into view, and give focus somewhere sensible on a new question
+  const formsRef = useRef<HTMLElement>(null);
+  const formRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (wordPick !== null) formsRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [wordPick]);
+  useEffect(() => {
+    if (i > 0) formRef.current?.focus();
+  }, [i]);
 
   if (!data || !progress || !round) return <Gate error={error} />;
   const parse = (p: StringKey[]) => p.map((k) => t(k)).join(" · ");
@@ -76,8 +88,8 @@ export default function DrillSession() {
   if (i >= questions.length) {
     return (
       <div className="pt-10 text-center">
-        <h1 className="text-2xl font-semibold">{t("drillDone")}</h1>
-        <p className="mt-2 text-muted">{t("drillScore", { n: score, total: questions.length })}</p>
+        <h1 className="text-2xl font-semibold">{t(questions.length ? "drillDone" : "drillEmpty")}</h1>
+        {questions.length > 0 && <p className="mt-2 text-muted">{t("drillScore", { n: score, total: questions.length })}</p>}
         <button
           type="button"
           onClick={start}
@@ -103,6 +115,8 @@ export default function DrillSession() {
         : "";
   const next = () => {
     if (wordRight && formPick === q.answer) setScore((s) => s + 1);
+    stopAudio();
+    window.scrollTo(0, 0);
     setI(i + 1);
     setWordPick(null);
     setFormPick(null);
@@ -111,7 +125,7 @@ export default function DrillSession() {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-3 pt-2">
-        <Link href="/" className="-ml-1 p-2 text-muted" aria-label={t("exit")}>
+        <Link href="/" onClick={() => stopAudio()} className="-ml-1 p-2 text-muted" aria-label={t("exit")}>
           ✕
         </Link>
         <div
@@ -134,7 +148,9 @@ export default function DrillSession() {
       {beginner && i === 0 && <p className="text-sm text-muted">{t("drillBeginnerHint")}</p>}
 
       <div className="rounded-3xl border border-line bg-surface p-6 text-center shadow-sm">
-        <h1 className="font-latin text-5xl font-semibold break-words">{q.form}</h1>
+        <h1 ref={formRef} tabIndex={-1} className="font-latin text-5xl font-semibold break-words outline-none">
+          {q.form}
+        </h1>
         <button
           type="button"
           onClick={() => void playForm(q.form, chosenProns()[0])}
@@ -163,7 +179,7 @@ export default function DrillSession() {
       </section>
 
       {wordPick !== null && (
-        <section>
+        <section ref={formsRef} className="scroll-mb-4">
           <h2 className="mb-2 text-sm font-medium text-muted">{t("drillWhichForm")}</h2>
           <div className="space-y-2">
             {q.parses.map((p, k) => (

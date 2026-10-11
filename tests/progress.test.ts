@@ -107,3 +107,10 @@ test("settings saved before the pronunciation choice keep both recordings", () =
   assert.equal(p?.settings.pron, "both");
   assert.equal(store.parseProgress({ version: 1, cards: {}, log: {}, settings: { pron: "classical" } })?.settings.pron, "classical");
 });
+
+test("non-object settings fall back to defaults instead of throwing", () => {
+  for (const settings of ["x", 3, [1], null]) {
+    const p = store.parseProgress({ version: 1, cards: {}, log: {}, settings });
+    assert.ok(p, JSON.stringify(settings));
+  }
+});

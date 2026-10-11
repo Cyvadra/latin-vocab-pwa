@@ -17,7 +17,19 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => (k.startsWith("latin-shell-") && k !== SHELL_CACHE) || (k.startsWith("latin-audio-") && k !== AUDIO_CACHE)).map((k) => caches.delete(k))))
+      .then((keys) =>
+        Promise.all(
+          keys.map(async (k) => {
+            if (k.startsWith("latin-shell-") && k !== SHELL_CACHE) return caches.delete(k);
+            if (k.startsWith("latin-audio-") && k !== AUDIO_CACHE) {
+              // An old audio cache with many files held a full download (plays alone cache only a few): leave a marker so Settings can say it's gone.
+              if ((await (await caches.open(k)).keys()).length > 500)
+                await (await caches.open(AUDIO_CACHE)).put("/__audio-legacy-download", new Response("1"));
+              return caches.delete(k);
+            }
+          })
+        )
+      )
       .then(() => self.clients.claim())
   );
 });

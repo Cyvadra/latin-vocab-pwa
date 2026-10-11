@@ -33,8 +33,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { t, script } = useT();
   const theme = progress?.settings.theme ?? "system";
   const lang = progress?.settings.uiLang ?? "en";
-  // The study screen is full-bleed: hide the tab bar to maximise space and avoid mis-taps.
-  const immersive = pathname.startsWith("/study");
+  // Study and drill sessions are full-bleed: hide the tab bar to maximise space and avoid mis-taps.
+  const immersive = pathname.startsWith("/study") || pathname.startsWith("/drill");
 
   useEffect(() => {
     const root = document.documentElement;

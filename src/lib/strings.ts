@@ -32,6 +32,8 @@ export const en = {
   // study
   showAnswer: "Show answer",
   moreBelow: "Derivatives and forms below",
+  moreBelowDer: "Derivatives below",
+  moreBelowForms: "Forms below",
   tapToFlip: "Tap card or press Space",
   again: "Again",
   hard: "Hard",
@@ -87,6 +89,7 @@ export const en = {
   drillRight: "Correct:",
   drillWrong: "Not quite. The answer is",
   drillDone: "Round complete",
+  drillEmpty: "No questions could be made from these words yet — study a few more and try again",
   drillScore: "{n} of {total} fully correct",
   drillAgain: "Another round",
   drillSeeTable: "All forms of {word}",
@@ -241,6 +244,8 @@ export const zh: Record<StringKey, string> = {
 
   showAnswer: "显示答案",
   moreBelow: "下方有派生词和词形",
+  moreBelowDer: "下方有派生词",
+  moreBelowForms: "下方有词形",
   tapToFlip: "点按卡片或按空格键",
   again: "重来",
   hard: "较难",
@@ -295,6 +300,7 @@ export const zh: Record<StringKey, string> = {
   drillRight: "正确：",
   drillWrong: "不对。正确答案是",
   drillDone: "本轮完成",
+  drillEmpty: "这些词暂时出不了题——再学几个词后重试",
   drillScore: "完全答对 {n} / {total} 题",
   drillAgain: "再来一轮",
   drillSeeTable: "{word} 的全部词形",

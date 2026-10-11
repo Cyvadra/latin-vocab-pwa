@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { StringKey } from "@/lib/strings";
 import { AudioPair } from "@/components/AudioButton";
 import Example from "@/components/Example";
 import Gate from "@/components/Gate";
@@ -225,8 +226,9 @@ function Running({
   const prompt =
     face === "listen" && !flipped ? t("listenFront") : face === "meaning" && !flipped ? t("meaningFront") : null;
 
-  // the cue below the flipped card only when WordExtras has something to scroll to
-  const hasExtras = !!word.der || !!paradigm(word.hw, word.pos.en, word.detail?.en);
+  // the cue below the flipped card names what WordExtras actually shows (built once per word, not per tick)
+  const hasForms = useMemo(() => !!paradigm(word.hw, word.pos.en, word.detail?.en), [word]);
+  const cue: StringKey | null = word.der ? (hasForms ? "moreBelow" : "moreBelowDer") : hasForms ? "moreBelowForms" : null;
 
   return (
     <div className="flex min-h-[calc(100dvh-2rem)] flex-col">
@@ -297,7 +299,7 @@ function Running({
         )}
 
         {!flipped && <p className="absolute bottom-4 text-xs text-muted">{t("tapToFlip")}</p>}
-        {flipped && hasExtras && <p className="absolute bottom-4 text-xs text-muted" aria-hidden>{t("moreBelow")} ↓</p>}
+        {flipped && cue && <p className="absolute bottom-4 text-xs text-muted" aria-hidden>{t(cue)} ↓</p>}
       </div>
 
       {flipped && (
@@ -306,7 +308,7 @@ function Running({
         </div>
       )}
 
-      <div className="safe-bottom sticky bottom-0 bg-bg pt-4 pb-2">
+      <div className="sticky bottom-0 bg-bg pt-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {flipped ? (
           <div className="grid grid-cols-4 gap-2">
             {RATINGS.map((r) => (

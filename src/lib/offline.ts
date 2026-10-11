@@ -7,7 +7,23 @@ export const AUDIO_CACHE = "latin-audio-v3";
 const DOWNLOADED_KEY = "latin-audio-downloaded";
 const downloadTag = (s: Pick<Settings, "pron" | "classicalVoice">) => `${AUDIO_CACHE}|${s.pron}|${s.classicalVoice}`;
 
-/** Whether downloaded audio matches these settings: "none" (never downloaded), "current", or "stale". */
+// Left in the audio cache by sw.js when it drops a large older audio cache (downloads made before the tag existed).
+const LEGACY_MARKER = "/__audio-legacy-download";
+
+/** Whether an audio download from an older cache version was discarded (and never redone). */
+export async function hadLegacyDownload(): Promise<boolean> {
+  if (!("caches" in globalThis)) return false;
+  try {
+    return !!(await (await caches.open(AUDIO_CACHE)).match(LEGACY_MARKER));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Whether downloaded audio covers these settings: "none" (never downloaded), "current", or "stale"
+ * (a different cache version, or a pronunciation/voice playback now needs that wasn't fetched).
+ */
 export function offlineAudioState(settings: Pick<Settings, "pron" | "classicalVoice">): "none" | "current" | "stale" {
   let tag: string | null = null;
   try {
@@ -16,7 +32,13 @@ export function offlineAudioState(settings: Pick<Settings, "pron" | "classicalVo
     /* storage unavailable */
   }
   if (!tag) return "none";
-  return tag === downloadTag(settings) ? "current" : "stale";
+  const [cache, pron, voice] = tag.split("|");
+  if (cache !== AUDIO_CACHE) return "stale";
+  const covered = pron === "both" ? ["classical", "ecclesiastical"] : [pron];
+  const needed = chosenProns(settings);
+  if (!needed.every((p) => covered.includes(p))) return "stale";
+  if (needed.includes("classical") && voice !== settings.classicalVoice) return "stale";
+  return "current";
 }
 
 /**
@@ -52,6 +74,7 @@ export async function downloadAudio(
     }
   };
   await Promise.all(Array.from({ length: 6 }, worker));
+  await cache.delete(LEGACY_MARKER);
   try {
     localStorage.setItem(DOWNLOADED_KEY, downloadTag(settings));
   } catch {

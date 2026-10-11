@@ -1,4 +1,5 @@
 "use client";
+import { useMemo } from "react";
 import { chosenProns, playForm } from "@/lib/audio";
 import { useT } from "@/lib/i18n";
 import { isInvariable, isSingleForm, paradigm, type FormTable } from "@/lib/morph";
@@ -67,7 +68,7 @@ function Table({ table }: { table: FormTable }) {
 /** Declension / conjugation tables generated from the dictionary entry. Renders nothing if unsupported. */
 export default function Paradigm({ word }: { word: Word }) {
   const { t } = useT();
-  const sections = paradigm(word.hw, word.pos.en, word.detail?.en);
+  const sections = useMemo(() => paradigm(word.hw, word.pos.en, word.detail?.en), [word]);
   const detail = word.detail?.en;
   if (!sections) {
     // say so for words that don't inflect, rather than showing nothing
