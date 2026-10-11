@@ -2,7 +2,7 @@
 // The TTS scripts voice this list with --forms; periphrastic cells ("amātus sum") reuse their parts.
 import fs from "node:fs";
 import path from "node:path";
-import { formKey, paradigm } from "../src/lib/morph";
+import { formKey, paradigm, singleForms } from "../src/lib/morph";
 import type { Word } from "../src/lib/types";
 
 const root = path.resolve(__dirname, "..");
@@ -16,8 +16,7 @@ for (const w of words) {
     for (const t of s.tables) {
       for (const r of t.rows) {
         for (const cell of r.cells) {
-          for (const f of cell.split("/").map((x) => x.trim())) {
-            if (!f || f === "—" || f.includes(" ")) continue;
+          for (const f of singleForms(cell)) {
             const k = formKey(f);
             const prev = seen.get(k);
             if (prev && prev !== f) throw new Error(`key clash: ${prev} / ${f}`);

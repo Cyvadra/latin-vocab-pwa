@@ -1,5 +1,5 @@
 // Form-recognition drill: show an inflected form, ask for its dictionary word and its grammatical description.
-import { paradigm, plainLatin, type Paradigm } from "./morph";
+import { paradigm, plainLatin, singleForms, type Paradigm } from "./morph";
 import type { StringKey } from "./strings";
 import type { Progress, Word } from "./types";
 
@@ -32,7 +32,7 @@ export function cells(par: Paradigm): Cell[] {
       for (const r of t.rows) {
         r.cells.forEach((c, i) => {
           // periphrastic forms ("amātus sum") and gaps can't be told apart from their parts
-          const alts = c.split("/").map((a) => a.trim()).filter((a) => a && a !== "—" && !a.includes(" "));
+          const alts = singleForms(c);
           if (!alts.length) return;
           const form = alts[0];
           const parse: StringKey[] = [];
@@ -79,10 +79,15 @@ const formsOf = (w: Word): Set<string> => {
  * `beginner` tells the UI which of the two it got.
  */
 export function drillPool(words: Word[], progress: Progress): { pool: Word[]; beginner: boolean } {
-  const inflected = words.filter((w) => paradigmOf(w));
-  const studied = inflected.filter((w) => progress.cards[w.id] && progress.cards[w.id].phase !== "new");
+  // build paradigms only for words that can make it into the pool
+  const studied = words.filter((w) => progress.cards[w.id] && progress.cards[w.id].phase !== "new" && paradigmOf(w));
   if (studied.length >= 8) return { pool: studied, beginner: false };
-  return { pool: [...inflected].sort((a, b) => a.rank - b.rank).slice(0, 60), beginner: true };
+  const pool: Word[] = [];
+  for (const w of [...words].sort((a, b) => a.rank - b.rank)) {
+    if (paradigmOf(w)) pool.push(w);
+    if (pool.length === 60) break;
+  }
+  return { pool, beginner: true };
 }
 
 /** Build one question, or null if the word offers nothing to ask. `rnd` is a [0,1) random source. */
@@ -112,9 +117,16 @@ export function makeQuestion(word: Word, pool: Word[], rnd: () => number = Math.
 
   // other words of the same part of speech make the lemma choice non-trivial;
   // a word that can also produce this form (lēx/legō: legis) would be a second right answer, so skip it
-  const usable = pool.filter((w) => w.id !== word.id && !formsOf(w).has(same));
-  const others = shuffle(usable.filter((w) => w.pos.en === word.pos.en), rnd).slice(0, 3);
-  if (others.length < 3) others.push(...shuffle(usable.filter((w) => !others.includes(w)), rnd).slice(0, 3 - others.length));
+  // (form sets are built lazily, only until three are found)
+  const others: Word[] = [];
+  const take = (ws: Word[]) => {
+    for (const w of shuffle(ws, rnd)) {
+      if (others.length === 3) return;
+      if (w.id !== word.id && !others.includes(w) && !formsOf(w).has(same)) others.push(w);
+    }
+  };
+  take(pool.filter((w) => w.pos.en === word.pos.en));
+  if (others.length < 3) take(pool);
   if (others.length < 3) return null;
   return {
     word,

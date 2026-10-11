@@ -1,7 +1,7 @@
 "use client";
 import { chosenProns, playForm } from "@/lib/audio";
 import { useT } from "@/lib/i18n";
-import { isInvariable, paradigm, type FormTable } from "@/lib/morph";
+import { isInvariable, isSingleForm, paradigm, type FormTable } from "@/lib/morph";
 import type { Word } from "@/lib/types";
 
 /** A table cell: each single-word alternative ("domuī/domō") can be tapped to hear it. */
@@ -11,7 +11,7 @@ function FormCell({ cell }: { cell: string }) {
   return parts.map((f, i) => (
     <span key={i}>
       {i > 0 && "/"}
-      {f === "—" || f.includes(" ") ? (
+      {!isSingleForm(f.trim()) ? (
         f // gaps and periphrastic forms ("amātus sum") have no single recording
       ) : (
         <button

@@ -1138,3 +1138,7 @@ export function wordMatcher(hw: string, pos: string, detail?: string): (token: s
 /** File-safe audio key that keeps vowel length: "amāvī" → "ama_vi_" (shared with tts/ and the form-audio player). */
 export const formKey = (form: string) =>
   form.normalize("NFD").toLowerCase().replace(/̄/g, "_").replace(/[^a-z_]/g, "");
+
+/** A cell's alternatives that have their own recording: gaps ("—") and periphrastic forms ("amātus sum") don't. */
+export const isSingleForm = (f: string): boolean => !!f && f !== "—" && !f.includes(" ");
+export const singleForms = (cell: string): string[] => cell.split("/").map((f) => f.trim()).filter(isSingleForm);

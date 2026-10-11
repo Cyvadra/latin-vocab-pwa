@@ -11,8 +11,7 @@ export { SPEECH_RATES };
 
 /** The learner's playback speed (settings are validated on load/import, see parseProgress). */
 function userRate(): number {
-  const r = getSettings().speechRate;
-  return (SPEECH_RATES as readonly number[]).includes(r) ? r : 1;
+  return getSettings().speechRate; // validated by parseProgress
 }
 
 export function audioUrl(id: number, src: AudioSource): string {
@@ -38,7 +37,12 @@ export function chosenProns(settings: Pick<Settings, "pron"> = getSettings()): P
   return settings.pron === "both" ? ["classical", "ecclesiastical"] : [settings.pron];
 }
 
-const pick = (available: AudioSource[], pron: Pronunciation) => sourcesFor(pron).find((s) => available.includes(s)) ?? null;
+/** The source playback uses for `pron` among those a word has (also what offline downloads fetch). */
+export const pickSource = (
+  available: AudioSource[],
+  pron: Pronunciation,
+  settings: Pick<Settings, "classicalVoice"> = getSettings(),
+): AudioSource | null => sourcesFor(pron, settings).find((s) => available.includes(s)) ?? null;
 
 // 0.05 s of silence. Playing it inside a tap unlocks the shared element for later programmatic play (iOS Safari).
 const SILENCE =
@@ -99,14 +103,14 @@ async function play(urls: (string | null)[], text: string, pron: Pronunciation):
 
 /** Play a word's recording. Resolves true if a recording (or fallback voice) started. */
 export function playWord(word: Word, pron: Pronunciation): Promise<boolean> {
-  const src = pick(word.audio, pron);
+  const src = pickSource(word.audio, pron);
   return play([src && audioUrl(word.id, src)], word.lemma, pron);
 }
 
 /** Play the word's example sentence. */
 export function playSentence(word: Word, pron: Pronunciation): Promise<boolean> {
   if (!word.ex) return Promise.resolve(false);
-  const src = pick(word.ex.audio, pron);
+  const src = pickSource(word.ex.audio, pron);
   return play([src && sentenceAudioUrl(word.id, src)], word.ex.la, pron);
 }
 

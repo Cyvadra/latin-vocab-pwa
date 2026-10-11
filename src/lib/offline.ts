@@ -1,4 +1,4 @@
-import { audioUrl, chosenProns, sentenceAudioUrl, sourcesFor } from "./audio";
+import { audioUrl, chosenProns, pickSource, sentenceAudioUrl } from "./audio";
 import type { AudioSource, Settings, Word } from "./types";
 
 export const AUDIO_CACHE = "latin-audio-v3";
@@ -33,7 +33,7 @@ export async function downloadAudio(
   const cache = await caches.open(AUDIO_CACHE);
   // the first available source per chosen pronunciation, as playback would pick it
   const first = (available: AudioSource[]) =>
-    chosenProns(settings).flatMap((p) => sourcesFor(p, settings).find((s) => available.includes(s)) ?? []);
+    chosenProns(settings).flatMap((p) => pickSource(available, p, settings) ?? []);
   const urls = words.flatMap((w) => [
     ...first(w.audio).map((src) => audioUrl(w.id, src)),
     ...first(w.ex?.audio ?? []).map((src) => sentenceAudioUrl(w.id, src)),
