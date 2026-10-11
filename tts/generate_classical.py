@@ -19,6 +19,7 @@ from latin_tts import LatinTTS, normalize
 ap = argparse.ArgumentParser()
 ap.add_argument("--limit", type=int, default=0)
 ap.add_argument("--seeds", type=int, default=6)
+ap.add_argument("--batch", type=int, default=8, help="items per GPU batch (each with --seeds takes)")
 ap.add_argument("--noise", type=float, default=0.3)
 ap.add_argument("--out", default="tts/out/classical")
 ap.add_argument("--redo", action="store_true")
@@ -60,40 +61,50 @@ def spoken_text(lemma: str, headword: str) -> str:
         t = normalize(" ".join(w for w in headword.split() if not w.startswith("-")))
     return t
 
-t0 = time.time()
-for n, (wid, lemma, hw) in enumerate(rows, 1):
+def score_take(wav, got: str, target: str) -> dict:
+    got_n = normalize(got).replace(" ", "")
+    sim = difflib.SequenceMatcher(None, target, got_n).ratio()
+    trimmed = len(trim_and_polish(wav, tts.sr)) / tts.sr - 0.24
+    # duration model was fitted on isolated words
+    slow = 1.0 if args.sentences else trimmed / expected_trimmed_dur(len(target))
+    score = sim - 0.8 * max(0.0, slow - 1.3) - (0.3 if trimmed < 0.2 else 0)
+    return dict(sim=round(sim, 3), score=round(score, 3), dur=round(len(wav) / tts.sr, 2), asr=got_n, wav=wav)
+
+
+# skip finished items, unless the text changed (e.g. an edited example sentence)
+todo = []
+for wid, lemma, hw in rows:
     text = spoken_text(lemma, hw)
-    # skip finished items, unless the text changed (e.g. an edited example sentence)
     if report.get(str(wid), {}).get("text") == text and (out / f"{wid}.wav").exists() and not args.redo and not only:
         continue
-    target = text.replace(" ", "")
-    best = None
-    for seed in range(args.seeds):
-        try:
-            wav = tts.synth(text, seed=seed)
-        except ValueError:
-            break
-        dur = len(wav) / tts.sr
-        got = asr({"raw": wav, "sampling_rate": tts.sr}, generate_kwargs={"max_new_tokens": 80 if args.sentences else 10, "num_beams": 1})["text"]
-        got_n = normalize(got).replace(" ", "")
-        sim = difflib.SequenceMatcher(None, target, got_n).ratio()
-        trimmed = len(trim_and_polish(wav, tts.sr)) / tts.sr - 0.24
-        slow = trimmed / expected_trimmed_dur(len(target))
-        if args.sentences:
-            slow = 1.0  # duration model was fitted on isolated words
-        score = sim - 0.8 * max(0.0, slow - 1.3) - (0.3 if trimmed < 0.2 else 0)
-        if best is None or score > best["score"]:
-            best = dict(seed=seed, sim=round(sim, 3), score=round(score, 3), dur=round(dur, 2), asr=got_n, wav=wav)
-        if sim == 1.0 and slow < 1.3:
-            break
-    if best is None:
-        report[str(wid)] = dict(text=text, error="synthesis failed")
-        continue
-    sf.write(out / f"{wid}.wav", trim_and_polish(best.pop("wav"), tts.sr), tts.sr)
-    report[str(wid)] = dict(text=text, **best)
-    if n % 25 == 0:
-        report_path.write_text(json.dumps(report, ensure_ascii=False, indent=0))
-        print(f"{n}/{len(rows)} {time.time()-t0:.0f}s", flush=True)
+    todo.append((wid, text))
+
+# Batched on the GPU: --batch items x --seeds takes per VITS call, all takes checked by Whisper together.
+t0 = time.time()
+for b in range(0, len(todo), args.batch):
+    chunk = todo[b : b + args.batch]
+    takes = tts.synth_batch([t for _, t in chunk], args.seeds, seed=b)
+    flat = [w for ws in takes for w in ws]
+    heard = asr(
+        [{"raw": w, "sampling_rate": tts.sr} for w in flat],
+        batch_size=len(flat) or 1,
+        generate_kwargs={"max_new_tokens": 80 if args.sentences else 10, "num_beams": 1},
+    ) if flat else []
+    k = 0
+    for (wid, text), ws in zip(chunk, takes):
+        target = text.replace(" ", "")
+        cands = []
+        for seed, w in enumerate(ws):
+            cands.append(dict(seed=seed, **score_take(w, heard[k]["text"], target)))
+            k += 1
+        if not cands:
+            report[str(wid)] = dict(text=text, error="synthesis failed")
+            continue
+        best = max(cands, key=lambda c: c["score"])
+        sf.write(out / f"{wid}.wav", trim_and_polish(best.pop("wav"), tts.sr), tts.sr)
+        report[str(wid)] = dict(text=text, **best)
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=0))
+    print(f"{b + len(chunk)}/{len(todo)} {time.time()-t0:.0f}s", flush=True)
 report_path.write_text(json.dumps(report, ensure_ascii=False, indent=0))
 sims = [r["sim"] for r in report.values() if "sim" in r]
 print("done", len(sims), "mean sim", round(float(np.mean(sims)), 3), "exact", sum(s == 1.0 for s in sims))

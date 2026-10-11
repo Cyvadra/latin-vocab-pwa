@@ -39,3 +39,25 @@ class LatinTTS:
         with torch.no_grad():
             wav = self.model(**{k: v.to(self.device) for k, v in ids.items()}).waveform[0]
         return wav.float().cpu().numpy()
+
+    def synth_batch(self, texts: list[str], takes: int, seed: int = 0) -> list[list[np.ndarray]]:
+        """`takes` random renditions of each text in one forward pass; returns wavs[text][take].
+
+        Each batch row draws its own noise, so the takes vary like separate seeds would.
+        Texts the model can't take (under 5 tokens) get an empty list.
+        """
+        ok = [i for i, t in enumerate(texts) if len(self.tok(t)["input_ids"]) >= 5]
+        out: list[list[np.ndarray]] = [[] for _ in texts]
+        if not ok:
+            return out
+        ids = self.tok([texts[i] for i in ok], return_tensors="pt", padding=True)
+        ids = {k: v.repeat_interleave(takes, dim=0).to(self.device) for k, v in ids.items()}
+        set_seed(seed)
+        with torch.no_grad():
+            res = self.model(**ids)
+        wav = res.waveform.float().cpu().numpy()
+        lens = res.sequence_lengths.cpu().numpy()
+        for j, i in enumerate(ok):
+            out[i] = [wav[j * takes + k, : lens[j * takes + k]] for k in range(takes)]
+        return out
+

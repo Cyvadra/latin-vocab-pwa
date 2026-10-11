@@ -10,7 +10,7 @@ import soundfile as sf
 
 sys.path.insert(0, str(Path(__file__).parent))
 from audio_utils import trim_and_polish
-from latin_ipa import text_ipa
+from latin_ipa import piper_phonemes, text_ipa
 from piper import PiperVoice, SynthesisConfig
 
 ap = argparse.ArgumentParser()
@@ -43,7 +43,7 @@ for n, (key, text) in enumerate(rows, 1):
         ipa = re.sub(r"[^\W\d_]+", lambda _: next(words), text)
         ipa = re.sub(r"[;:]", ",", ipa).replace("!", ".").replace("?", ".")
         ipa = re.sub(r"[^\w\sˈːɪʊɛɔŋ,.]", "", ipa)
-    sf.write(dst, trim_and_polish(voice.phoneme_ids_to_audio(voice.phonemes_to_ids(list(ipa)), cfg), sr), sr)
+    sf.write(dst, trim_and_polish(voice.phoneme_ids_to_audio(voice.phonemes_to_ids(piper_phonemes(ipa)), cfg), sr), sr)
     if n % 500 == 0:
         print(f"{n}/{len(rows)}", flush=True)
 print("done", len(rows))

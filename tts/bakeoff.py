@@ -12,7 +12,7 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).parent))
 from audio_utils import trim_and_polish
-from latin_ipa import word_ipa
+from latin_ipa import piper_phonemes, word_ipa
 
 rows = [l.split("\t")[:2] for l in Path(sys.argv[1]).read_text().splitlines() if l]
 out = Path(sys.argv[2])
@@ -27,7 +27,7 @@ for name in [] if only == "kokoro" else ["serena", "paola"]:
     cfg = SynthesisConfig(length_scale=1.5, noise_scale=0.4, noise_w_scale=0.5)
     d = out / f"piper-{name}"; d.mkdir(parents=True, exist_ok=True)
     for key, form in rows:
-        ids = voice.phonemes_to_ids(list(word_ipa(form)))
+        ids = voice.phonemes_to_ids(piper_phonemes(word_ipa(form)))
         wav = voice.phoneme_ids_to_audio(ids, cfg)
         sf.write(d / f"{key}.wav", trim_and_polish(wav, voice.config.sample_rate), voice.config.sample_rate)
     print("piper", name, "done", flush=True)

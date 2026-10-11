@@ -115,6 +115,11 @@ def word_ipa(word: str) -> str:
     return re.sub(r"([bdfgklmnprst])\1", r"\1ː", s)
 
 
+def piper_phonemes(ipa: str) -> list[str]:
+    """Piper's espeak phoneme set has the IPA ɡ (U+0261), not the ASCII g; unknown symbols are silently dropped."""
+    return list(ipa.replace("g", "ɡ"))
+
+
 def text_ipa(text: str) -> str:
     return " ".join(word_ipa(w) for w in re.findall(r"[^\W\d_]+", text))
 
