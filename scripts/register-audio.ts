@@ -7,6 +7,7 @@ const root = path.resolve(__dirname, "..");
 const ENGINES: Record<string, string> = {
   classical: "Ken-Z/latin_SpeechT5 (VITS, Vox Classica)",
   ecclesiastical: "Piper it_IT-serena-medium via Latin→Italian respelling",
+  "classical-alt": "Piper it_IT-paola-medium reading rule-based classical IPA (tts/latin_ipa.py)",
 };
 
 const db = new Database(path.join(root, "data", "latin.db"));

@@ -16,6 +16,7 @@
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "next typegen && tsc --noEmit",
     "data:audio": "tsx scripts/encode-audio.ts && tsx scripts/register-audio.ts",
+    "data:forms": "tsx scripts/export-forms.ts",
     "gen:zh-hant": "tsx scripts/gen-zh-hant.ts"
   },
   "dependencies": {

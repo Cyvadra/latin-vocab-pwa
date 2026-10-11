@@ -98,7 +98,14 @@ await step("word detail page and audio request", async () => {
   assert.match(hit[2], /audio/);
 });
 
-await step("both pronunciations are offered, for the word and its example sentence", async () => {
+await step("one pronunciation by default; 'Both' in settings shows each, for the word and its sentence", async () => {
+  assert.equal(await page.getByRole("button", { name: "Play audio (Ecclesiastical)" }).count(), 0);
+  await page.getByRole("button", { name: "Play audio: amōrem" }).first().click(); // a form in the table
+  await page.waitForTimeout(800);
+  assert.ok(audioRequests.some(([u]) => u.includes("/audio/classical/f/amo_rem.mp3")), "form audio requested");
+  await page.goto(base + "/settings", { waitUntil: "networkidle" });
+  await page.getByRole("radio", { name: /button for each system/ }).click();
+  await page.goto(base + "/words/51", { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Play audio (Ecclesiastical)" }).click();
   await page.waitForTimeout(800);
   await page.getByRole("button", { name: "Play sentence (Classical)" }).click();

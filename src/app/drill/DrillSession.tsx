@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Gate from "@/components/Gate";
+import { chosenProns, playForm } from "@/lib/audio";
 import { drillPool, makeSession, type Question } from "@/lib/drill";
 import { useT } from "@/lib/i18n";
 import { useProgress } from "@/lib/progress-store";
@@ -109,6 +110,13 @@ export default function DrillSession() {
 
       <div className="rounded-3xl border border-line bg-surface p-6 text-center shadow-sm">
         <h1 className="font-latin text-5xl font-semibold break-words">{q.form}</h1>
+        <button
+          type="button"
+          onClick={() => void playForm(q.form, chosenProns()[0])}
+          className="mt-3 rounded-full bg-accent-soft px-4 py-2 text-sm text-accent active:scale-95"
+        >
+          {t("playAudio")}
+        </button>
       </div>
 
       <section>

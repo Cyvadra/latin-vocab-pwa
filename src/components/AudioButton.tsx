@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useT } from "@/lib/i18n";
-import { playSentence, playWord } from "@/lib/audio";
-import type { Pronunciation, Word } from "@/lib/types";
+import { chosenProns, playSentence, playWord } from "@/lib/audio";
+import { useProgress } from "@/lib/progress-store";
+import { DEFAULT_SETTINGS, type Pronunciation, type Word } from "@/lib/types";
 
 export default function AudioButton({
   word,
@@ -62,7 +63,7 @@ export default function AudioButton({
   );
 }
 
-/** Both pronunciations side by side; the learner never has to choose one in settings. */
+/** The learner's chosen pronunciation(s): one button, or both side by side with captions. */
 export function AudioPair({
   word,
   size = "md",
@@ -75,10 +76,19 @@ export function AudioPair({
   sentence?: boolean;
 }) {
   const { t } = useT();
+  const progress = useProgress();
+  const prons = chosenProns(progress?.settings ?? DEFAULT_SETTINGS);
   return (
     <span className={`inline-flex items-start ${size === "sm" ? "gap-2" : "gap-5"}`}>
-      {(["classical", "ecclesiastical"] as const).map((pr) => (
-        <AudioButton key={pr} word={word} pron={pr} size={size} sentence={sentence} caption={t(short ? `${pr}Short` : pr)} />
+      {prons.map((pr) => (
+        <AudioButton
+          key={pr}
+          word={word}
+          pron={pr}
+          size={size}
+          sentence={sentence}
+          caption={prons.length > 1 ? t(short ? `${pr}Short` : pr) : undefined}
+        />
       ))}
     </span>
   );

@@ -78,6 +78,18 @@ words with ASR similarity < 0.5 or unusually slow delivery were redone this way 
 `ti`→`tsi`, `ae`→`e`, silent `h`, …) and marks Latin stress (derived from macrons, diphthongs and consonant clusters) with an
 accent; the Italian Piper voice `it_IT-serena-medium` (CC-BY-4.0 dataset) reads it. `python tts/test_ecclesiastical.py` checks the rules.
 
+**Classical, phonetic voice** (`classical-alt`, chosen in Settings → Classical voice): `tts/latin_ipa.py` turns macronized
+Latin into restored-classical IPA (vowel length from macrons, penultimate-rule stress, v = [w], ae = [aj]) and the Italian
+Piper voice `it_IT-paola-medium` reads the phonemes directly — one take per item, no ASR selection.
+`tts/generate_ipa.py` writes `tts/out/classical-alt/{,s/,f/}`. `tts/bakeoff.py` voices a form list through Piper and Kokoro for
+listening comparisons.
+
+**Inflected forms**: `npm run data:forms` writes every distinct single-word form in the paradigms to `data/forms.tsv`
+(`formKey` in `src/lib/morph.ts`, e.g. `amāvī` → `ama_vi_`). Each generator takes `--forms data/forms.tsv` and writes
+`<out>/f/<key>.wav`; `--offset`/`--limit` split a run across workers, and finished files are skipped on restart.
+Form recordings live in `public/audio/<source>/f/` and aren't listed in `words.json`; the forms tables request them on tap
+and fall back to the device voice. A full run is ~32,000 forms per voice (classical neural model: ~2.5 s/form on an RTX 4080).
+
 `grecromancer` (PolyglotToolkit) was evaluated: its GitHub repository currently contains only a README stub and licence, no code or model.
 
 ## Tests

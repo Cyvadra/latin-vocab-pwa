@@ -6,7 +6,7 @@ import { AudioPair } from "@/components/AudioButton";
 import Example from "@/components/Example";
 import Gate from "@/components/Gate";
 import Gloss from "@/components/Gloss";
-import { playWord, primeAudio, stopAudio } from "@/lib/audio";
+import { chosenProns, playWord, primeAudio, stopAudio } from "@/lib/audio";
 import { newCard, previewIntervals, type Rating } from "@/lib/fsrs";
 import { formatHeadword, hashPick, shortInterval } from "@/lib/format";
 import { useT } from "@/lib/i18n";
@@ -177,7 +177,7 @@ function Running({
     const token = `${id}:${reviewed}:${face === "meaning" ? "back" : "front"}`;
     if (shouldPlay && lastPlayed.current !== token) {
       lastPlayed.current = token;
-      void playWord(word, "classical");
+      void playWord(word, chosenProns()[0]); // with "both", autoplay the first (classical)
     }
   }, [id, reviewed, face, flipped, autoplay, word]);
 
@@ -202,7 +202,7 @@ function Running({
       } else if (flipped && ["1", "2", "3", "4"].includes(e.key)) {
         rate(Number(e.key) as Rating);
       } else if (e.key === "r" || e.key === "R") {
-        void playWord(word, "classical");
+        void playWord(word, chosenProns()[0]);
       } else if (e.key === "e" || e.key === "E") {
         void playWord(word, "ecclesiastical");
       }

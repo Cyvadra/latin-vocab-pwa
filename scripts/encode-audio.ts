@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = path.resolve(__dirname, "..");
-const SYSTEMS = ["classical", "ecclesiastical"];
+const SYSTEMS = ["classical", "classical-alt", "ecclesiastical"];
 
 function encode(src: string, dst: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -17,8 +17,8 @@ function encode(src: string, dst: string): Promise<void> {
 
 async function main() {
   const jobs: [string, string][] = [];
-  // words: tts/out/<system>/*.wav; example sentences: tts/out/<system>/s/*.wav
-  for (const system of SYSTEMS.flatMap((s) => [s, `${s}/s`])) {
+  // words: tts/out/<system>/*.wav; example sentences: …/s/*.wav; inflected forms: …/f/<formKey>.wav
+  for (const system of SYSTEMS.flatMap((s) => [s, `${s}/s`, `${s}/f`])) {
     const inDir = path.join(root, "tts", "out", system);
     if (!fs.existsSync(inDir)) continue;
     const outDir = path.join(root, "public", "audio", system);

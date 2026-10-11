@@ -1,7 +1,31 @@
 "use client";
+import { chosenProns, playForm } from "@/lib/audio";
 import { useT } from "@/lib/i18n";
 import { paradigm, type FormTable } from "@/lib/morph";
 import type { Word } from "@/lib/types";
+
+/** A table cell: each single-word alternative ("domuī/domō") can be tapped to hear it. */
+function FormCell({ cell }: { cell: string }) {
+  const { t } = useT();
+  const parts = cell.split("/");
+  return parts.map((f, i) => (
+    <span key={i}>
+      {i > 0 && "/"}
+      {f === "—" || f.includes(" ") ? (
+        f // gaps and periphrastic forms ("amātus sum") have no single recording
+      ) : (
+        <button
+          type="button"
+          onClick={() => void playForm(f, chosenProns()[0])}
+          aria-label={`${t("playAudio")}: ${f}`}
+          className="rounded text-left underline decoration-line decoration-dotted underline-offset-4 active:text-accent"
+        >
+          {f}
+        </button>
+      )}
+    </span>
+  ));
+}
 
 function Table({ table }: { table: FormTable }) {
   const { t } = useT();
@@ -29,7 +53,7 @@ function Table({ table }: { table: FormTable }) {
               </th>
               {r.cells.map((c, i) => (
                 <td key={i} className="px-1 py-1 font-latin break-words">
-                  {c}
+                  <FormCell cell={c} />
                 </td>
               ))}
             </tr>
@@ -44,7 +68,12 @@ function Table({ table }: { table: FormTable }) {
 export default function Paradigm({ word }: { word: Word }) {
   const { t } = useT();
   const sections = paradigm(word.hw, word.pos.en, word.detail?.en);
-  if (!sections) return null;
+  const detail = word.detail?.en;
+  if (!sections) {
+    // say so for words that don't inflect, rather than showing nothing
+    if (detail !== "indeclinable" && detail !== "numeral" && word.lemma !== "fore") return null;
+    return <p className="mt-4 px-1 text-sm text-muted">{t("formsIndeclinable")}</p>;
+  }
   return (
     <section className="mt-4">
       <h2 className="mb-2 px-1 text-sm font-semibold">{t("formsTitle")}</h2>
@@ -60,7 +89,8 @@ export default function Paradigm({ word }: { word: Word }) {
           </details>
         ))}
       </div>
-      <p className="mt-2 px-1 text-xs text-muted">{t("formsNote")}</p>
+      {detail === "impersonal" && <p className="mt-2 px-1 text-xs text-muted">{t("formsImpersonal")}</p>}
+      <p className="mt-2 px-1 text-xs text-muted">{t("formsTapHint")} {t("formsNote")}</p>
     </section>
   );
 }

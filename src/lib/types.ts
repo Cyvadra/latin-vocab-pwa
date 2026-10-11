@@ -3,6 +3,12 @@ export type Lang = "en" | "zh";
 export type Script = "hans" | "hant";
 export type GlossMode = "en" | "zh" | "both";
 export type Pronunciation = "classical" | "ecclesiastical";
+/** Which recordings the learner hears: one system, or both side by side */
+export type PronChoice = Pronunciation | "both";
+/** Classical recordings come from two engines: the Latin neural model, or rule-based IPA read by an Italian voice */
+export type ClassicalVoice = "neural" | "phonetic";
+/** Directory under /audio/ */
+export type AudioSource = Pronunciation | "classical-alt";
 
 export interface Label {
   en: string;
@@ -20,8 +26,8 @@ export interface Example {
   zt: string;
   /** Citation for a genuine quotation; null for constructed sentences */
   src: string | null;
-  /** Pronunciation systems with a recording of the sentence */
-  audio: Pronunciation[];
+  /** Audio sources with a recording of the sentence */
+  audio: AudioSource[];
 }
 
 export interface Word {
@@ -41,8 +47,8 @@ export interface Word {
   zh: string;
   /** Traditional Chinese gloss */
   zt: string;
-  /** Pronunciation systems with an audio file available */
-  audio: Pronunciation[];
+  /** Audio sources with a recording of the word */
+  audio: AudioSource[];
   /** Example sentence */
   ex?: Example;
   /** Descendants: English words, and the Italian/Spanish/French word */
@@ -84,6 +90,8 @@ export interface Settings {
   theme: "system" | "light" | "dark";
   /** Playback speed multiplier for recordings and the fallback voice; one of SPEECH_RATES. */
   speechRate: number;
+  pron: PronChoice;
+  classicalVoice: ClassicalVoice;
 }
 
 export interface Progress {
@@ -105,4 +113,6 @@ export const DEFAULT_SETTINGS: Settings = {
   front: "latin",
   theme: "system",
   speechRate: 1,
+  pron: "classical",
+  classicalVoice: "neural",
 };

@@ -1,6 +1,7 @@
 "use client";
 import { getSettings } from "./progress-store";
-import { SPEECH_RATES, type Pronunciation, type Word } from "./types";
+import { formKey } from "./morph";
+import { SPEECH_RATES, type AudioSource, type Pronunciation, type Settings, type Word } from "./types";
 
 let el: HTMLAudioElement | null = null;
 
@@ -12,13 +13,30 @@ function userRate(): number {
   return (SPEECH_RATES as readonly number[]).includes(r) ? r : 1;
 }
 
-export function audioUrl(id: number, pron: Pronunciation): string {
-  return `/audio/${pron}/${id}.mp3`;
+export function audioUrl(id: number, src: AudioSource): string {
+  return `/audio/${src}/${id}.mp3`;
 }
 
-export function sentenceAudioUrl(id: number, pron: Pronunciation): string {
-  return `/audio/${pron}/s/${id}.mp3`;
+export function sentenceAudioUrl(id: number, src: AudioSource): string {
+  return `/audio/${src}/s/${id}.mp3`;
 }
+
+export function formAudioUrl(form: string, src: AudioSource): string {
+  return `/audio/${src}/f/${formKey(form)}.mp3`;
+}
+
+/** Audio sources for a pronunciation, preferred first: the chosen classical engine, then the other one. */
+export function sourcesFor(pron: Pronunciation, settings: Pick<Settings, "classicalVoice"> = getSettings()): AudioSource[] {
+  if (pron === "ecclesiastical") return ["ecclesiastical"];
+  return settings.classicalVoice === "phonetic" ? ["classical-alt", "classical"] : ["classical", "classical-alt"];
+}
+
+/** The pronunciations the learner chose to hear, in display order. */
+export function chosenProns(settings: Pick<Settings, "pron"> = getSettings()): Pronunciation[] {
+  return settings.pron === "both" ? ["classical", "ecclesiastical"] : [settings.pron];
+}
+
+const pick = (available: AudioSource[], pron: Pronunciation) => sourcesFor(pron).find((s) => available.includes(s)) ?? null;
 
 // 0.05 s of silence. Playing it inside a tap unlocks the shared element for later programmatic play (iOS Safari).
 const SILENCE =
@@ -54,9 +72,10 @@ function speakFallback(text: string, pron: Pronunciation): boolean {
   return true;
 }
 
-async function play(url: string | null, text: string, pron: Pronunciation): Promise<boolean> {
+async function play(urls: (string | null)[], text: string, pron: Pronunciation): Promise<boolean> {
   stopAudio();
-  if (url) {
+  for (const url of urls) {
+    if (!url) continue;
     try {
       el ??= new Audio();
       el.src = url;
@@ -66,7 +85,7 @@ async function play(url: string | null, text: string, pron: Pronunciation): Prom
       await el.play();
       return true;
     } catch {
-      /* autoplay blocked or file missing: fall through */
+      /* autoplay blocked or file missing: try the next source */
     }
   }
   return speakFallback(text, pron);
@@ -74,11 +93,21 @@ async function play(url: string | null, text: string, pron: Pronunciation): Prom
 
 /** Play a word's recording. Resolves true if a recording (or fallback voice) started. */
 export function playWord(word: Word, pron: Pronunciation): Promise<boolean> {
-  return play(word.audio.includes(pron) ? audioUrl(word.id, pron) : null, word.lemma, pron);
+  const src = pick(word.audio, pron);
+  return play([src && audioUrl(word.id, src)], word.lemma, pron);
 }
 
 /** Play the word's example sentence. */
 export function playSentence(word: Word, pron: Pronunciation): Promise<boolean> {
   if (!word.ex) return Promise.resolve(false);
-  return play(word.ex.audio.includes(pron) ? sentenceAudioUrl(word.id, pron) : null, word.ex.la, pron);
+  const src = pick(word.ex.audio, pron);
+  return play([src && sentenceAudioUrl(word.id, src)], word.ex.la, pron);
+}
+
+/**
+ * Play one inflected form. Form recordings aren't listed in words.json (there are ~32,000),
+ * so try each source in turn and fall back to the device voice.
+ */
+export function playForm(form: string, pron: Pronunciation): Promise<boolean> {
+  return play(sourcesFor(pron).map((s) => formAudioUrl(form, s)), form, pron);
 }

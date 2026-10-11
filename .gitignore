@@ -48,3 +48,5 @@ next-env.d.ts
 /public/audio/
 /public/data/
 .claude/
+__pycache__/
+data/forms.tsv

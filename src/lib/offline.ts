@@ -1,18 +1,26 @@
-import { audioUrl, sentenceAudioUrl } from "./audio";
-import type { Word } from "./types";
+import { audioUrl, chosenProns, sentenceAudioUrl, sourcesFor } from "./audio";
+import type { AudioSource, Settings, Word } from "./types";
 
 export const AUDIO_CACHE = "latin-audio-v2";
 
-/** Fetch every recording (words and example sentences, both pronunciations) into the Cache Storage used by the service worker. */
+/**
+ * Fetch the recordings the learner listens to (words and example sentences, in the chosen
+ * pronunciation and classical voice) into the Cache Storage used by the service worker.
+ * Inflected-form recordings are left out (~32,000 files); they are cached as they are played.
+ */
 export async function downloadAudio(
   words: Word[],
+  settings: Pick<Settings, "pron" | "classicalVoice">,
   onProgress: (fraction: number) => void
 ): Promise<void> {
   if (!("caches" in globalThis)) throw new Error("Cache Storage unavailable");
   const cache = await caches.open(AUDIO_CACHE);
+  // the first available source per chosen pronunciation, as playback would pick it
+  const first = (available: AudioSource[]) =>
+    chosenProns(settings).flatMap((p) => sourcesFor(p, settings).find((s) => available.includes(s)) ?? []);
   const urls = words.flatMap((w) => [
-    ...w.audio.map((pron) => audioUrl(w.id, pron)),
-    ...(w.ex?.audio ?? []).map((pron) => sentenceAudioUrl(w.id, pron)),
+    ...first(w.audio).map((src) => audioUrl(w.id, src)),
+    ...first(w.ex?.audio ?? []).map((src) => sentenceAudioUrl(w.id, src)),
   ]);
   let done = 0;
   let next = 0;

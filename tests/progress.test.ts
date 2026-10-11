@@ -67,6 +67,18 @@ test("import drops malformed cards and fills missing settings", () => {
   assert.equal(p.settings.autoplay, true);
 });
 
+test("import validates the voice settings", () => {
+  const text = (settings: object) => JSON.stringify({ version: 1, cards: {}, log: {}, settings });
+  store.importProgress(text({ pron: "both", classicalVoice: "phonetic" }));
+  let p = JSON.parse(store.exportProgress());
+  assert.equal(p.settings.pron, "both");
+  assert.equal(p.settings.classicalVoice, "phonetic");
+  store.importProgress(text({ pron: "klingon", classicalVoice: 3 }));
+  p = JSON.parse(store.exportProgress());
+  assert.equal(p.settings.pron, "classical");
+  assert.equal(p.settings.classicalVoice, "neural");
+});
+
 test("streak counts consecutive days and tolerates a not-yet-studied today", () => {
   const now = new Date(2026, 9, 10, 8, 0).getTime();
   const day = (n: number) => dayKey(addDays(now, n));

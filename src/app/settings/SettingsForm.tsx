@@ -132,7 +132,7 @@ export default function SettingsForm() {
     setDl(0);
     setMsg("");
     try {
-      await downloadAudio(data.words, setDl);
+      await downloadAudio(data.words, s, setDl);
       setMsg(t("downloadDone"));
     } catch {
       setMsg(t("downloadFail"));
@@ -186,6 +186,27 @@ export default function SettingsForm() {
       </Section>
 
       <Section title={t("secAudio")}>
+        <Choice
+          label={t("pronunciation")}
+          value={s.pron}
+          onChange={set("pron")}
+          options={[
+            { value: "classical", label: t("classical"), hint: t("classicalHint") },
+            { value: "ecclesiastical", label: t("ecclesiastical"), hint: t("ecclesiasticalHint") },
+            { value: "both", label: t("pronBoth"), hint: t("pronBothHint") },
+          ]}
+        />
+        {s.pron !== "ecclesiastical" && (
+          <Choice
+            label={t("classicalVoice")}
+            value={s.classicalVoice}
+            onChange={set("classicalVoice")}
+            options={[
+              { value: "neural", label: t("voiceNeural"), hint: t("voiceNeuralHint") },
+              { value: "phonetic", label: t("voicePhonetic"), hint: t("voicePhoneticHint") },
+            ]}
+          />
+        )}
         <Link href="/guide" className="flex items-center justify-between px-4 py-3 text-accent">
           {t("guideLink")}
           <span aria-hidden="true">›</span>

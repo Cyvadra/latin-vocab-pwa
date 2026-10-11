@@ -52,11 +52,12 @@ const caseTable = (sg: string[] | null, pl: string[] | null, voc?: [string, stri
 };
 
 /** Gendered adjective/pronoun forms: each of sg/pl is [m, f, n] × 5 cases. */
-const genderTables = (sg: string[][] | null, pl: string[][] | null): FormSection[] => {
+const genderTables = (sg: string[][] | null, pl: string[][] | null, voc = false): FormSection[] => {
+  // with `voc`, each gender list carries a 6th form, the vocative
   const t = (forms: string[][], title: StringKey): FormTable => ({
     title,
     cols: ["genderM", "genderF", "genderN"],
-    rows: CASES.map((label, i) => ({ label, cells: forms.map((g) => g[i]) })),
+    rows: [...CASES, ...(voc ? ["caseVoc" as StringKey] : [])].map((label, i) => ({ label, cells: forms.map((g) => g[i]) })),
   });
   return [{ title: "declension", tables: [...(sg ? [t(sg, "singular")] : []), ...(pl ? [t(pl, "plural")] : [])] }];
 };
@@ -137,21 +138,60 @@ const FIXED: Record<string, Paradigm> = {
     {
       title: "declension",
       tables: [
-        caseTable(P("domus domūs domuī/domō domum domō/domū"), P("domūs domuum/domōrum domibus domōs/domūs domibus")),
+        caseTable(P("domus domūs domuī/domō domum domō/domū"), P("domūs domuum/domōrum domibus domōs/domūs domibus"), ["domus", "domūs"]),
       ],
     },
   ],
-  vīs: [{ title: "declension", tables: [caseTable(P("vīs — — vim vī"), P("vīrēs vīrium vīribus vīrēs vīribus"))] }],
+  nihil: [{ title: "declension", tables: [caseTable(P("nihil nihilī nihilō nihil nihilō"), null)] }],
+  mīlle: [{ title: "declension", tables: [caseTable(P("mīlle mīlle mīlle mīlle mīlle"), P("mīlia mīlium mīlibus mīlia mīlibus"))] }],
+  quisquis: G("quisquis — — quemquem quōquō | quisquis — — quemquem quōquō | quidquid/quicquid — — quidquid/quicquid quōquō", null),
+  quisquam: G(
+    "quisquam cuiusquam cuiquam quemquam quōquam | quisquam cuiusquam cuiquam quemquam quōquam | quicquam/quidquam cuiusquam cuiquam quicquam/quidquam quōquam",
+    null
+  ),
+  quīcumque: G(
+    "quīcumque cuiuscumque cuicumque quemcumque quōcumque | quaecumque cuiuscumque cuicumque quamcumque quācumque | quodcumque cuiuscumque cuicumque quodcumque quōcumque",
+    QUI_PL.replace(/(\S+)( |$)/g, (_, w: string, sp: string) => (w === "|" ? w : w + "cumque") + sp)
+  ),
+  plērusque: genderTables(null, [
+    P("plērīque plērōrumque plērīsque plērōsque plērīsque"),
+    P("plēraeque plērārumque plērīsque plērāsque plērīsque"),
+    P("plēraque plērōrumque plērīsque plēraque plērīsque"),
+  ]),
+  inquam: [
+    {
+      title: "indicativeActive",
+      tables: [
+        { title: "tensePres", cols: ["singular", "plural"], rows: [{ label: "person1", cells: ["inquam", "inquimus"] }, { label: "person2", cells: ["inquis", "inquitis"] }, { label: "person3", cells: ["inquit", "inquiunt"] }] },
+        { title: "tenseFut", cols: ["singular", "plural"], rows: [{ label: "person2", cells: ["inquiēs", "—"] }, { label: "person3", cells: ["inquiet", "—"] }] },
+        { title: "tensePerf", cols: ["singular", "plural"], rows: [{ label: "person2", cells: ["inquistī", "—"] }, { label: "person3", cells: ["inquit", "—"] }] },
+      ],
+    },
+  ],
+  aiō: [
+    {
+      title: "indicativeActive",
+      tables: [
+        { title: "tensePres", cols: ["singular", "plural"], rows: [{ label: "person1", cells: ["aiō", "—"] }, { label: "person2", cells: ["ais", "—"] }, { label: "person3", cells: ["ait", "aiunt"] }] },
+        { title: "tenseImpf", cols: ["singular", "plural"], rows: [{ label: "person1", cells: ["aiēbam", "aiēbāmus"] }, { label: "person2", cells: ["aiēbās", "aiēbātis"] }, { label: "person3", cells: ["aiēbat", "aiēbant"] }] },
+        { title: "tensePerf", cols: ["singular", "plural"], rows: [{ label: "person3", cells: ["ait", "—"] }] },
+      ],
+    },
+    { title: "subjunctiveActive", tables: [{ title: "tensePres", cols: ["singular", "plural"], rows: [{ label: "person2", cells: ["aiās", "—"] }, { label: "person3", cells: ["aiat", "aiant"] }] }] },
+  ],
+  vīs: [{ title: "declension", tables: [caseTable(P("vīs — — vim vī"), P("vīrēs vīrium vīribus vīrēs vīribus"), ["vīs", "vīrēs"])] }],
   bōs: [
     {
       title: "declension",
-      tables: [caseTable(P("bōs bovis bovī bovem bove"), P("bovēs boum bōbus/būbus bovēs bōbus/būbus"))],
+      tables: [caseTable(P("bōs bovis bovī bovem bove"), P("bovēs boum bōbus/būbus bovēs bōbus/būbus"), ["bōs", "bovēs"])],
     },
   ],
 };
 
 // ---------------------------------------------------------------- nouns
 
+/** Mass and abstract nouns with no plural in use */
+const SINGULAR_ONLY = new Set(["aurum", "argentum", "ferrum", "vulgus", "caelum", "famēs", "fors"]);
 const I_STEM_EXCEPTIONS = new Set(["canis", "iuvenis", "senex", "pater", "māter", "frāter", "sēdēs", "vātēs", "volucris"]);
 
 function noun(nom: string, genRaw: string | undefined, note: string): Paradigm | null {
@@ -174,7 +214,9 @@ function noun(nom: string, genRaw: string | undefined, note: string): Paradigm |
         !I_STEM_EXCEPTIONS.has(nom) &&
         ((/(is|ēs)$/.test(nom) && syllables(nom) === syllables(gen)) ||
           (/[sx]$/.test(nom) && isConsonant(st.at(-1)) && isConsonant(st.at(-2)))));
-    const genPl = pluralOnly && gen.endsWith("um") ? gen : st + (iStem ? "ium" : "um");
+    // cor cordium, os ossium: neuter monosyllables whose stem ends in two consonants
+    const neutIStem = neuter && syllables(nom) === 1 && isConsonant(st.at(-1)) && isConsonant(st.at(-2));
+    const genPl = pluralOnly && gen.endsWith("um") ? gen : st + (iStem || neutIStem ? "ium" : "um");
     if (neuter) {
       const npl = st + (pureNeuter ? "ia" : "a");
       sg = [nom, st + "is", st + "ī", nom, st + (pureNeuter && !gen.endsWith("ium") ? "ī" : "e")];
@@ -187,7 +229,8 @@ function noun(nom: string, genRaw: string | undefined, note: string): Paradigm |
     const st = nom.slice(0, -2);
     const e = isConsonant(st.at(-1)) ? "eī" : "ēī";
     sg = [nom, st + e, st + e, st + "em", st + "ē"];
-    pl = [st + "ēs", st + "ērum", st + "ēbus", st + "ēs", st + "ēbus"];
+    // only rēs and diēs have a full plural; the others use at most nom./acc. (spēs, faciēs)
+    pl = /^(rēs|diēs)$/.test(nom) ? [st + "ēs", st + "ērum", st + "ēbus", st + "ēs", st + "ēbus"] : [st + "ēs", "—", "—", st + "ēs", "—"];
   } else if (gen.endsWith("ārum") || gen.endsWith("ae")) {
     const st = gen.endsWith("ae") ? gen.slice(0, -2) : gen.slice(0, -4);
     sg = [nom, st + "ae", st + "ae", st + "am", st + "ā"];
@@ -215,8 +258,11 @@ function noun(nom: string, genRaw: string | undefined, note: string): Paradigm |
   } else {
     return null;
   }
-  if (pluralOnly) return [{ title: "declension", tables: [caseTable(null, pl)] }];
-  return [{ title: "declension", tables: [caseTable(sg, pl, voc)] }];
+  // the vocative equals the nominative except in 2nd-declension -us/-ius nouns
+  if (pluralOnly) return [{ title: "declension", tables: [caseTable(null, pl, [pl[0], pl[0]])] }];
+  if (nom === "famēs") sg[4] = "famē"; // 5th-declension ablative
+  if (SINGULAR_ONLY.has(nom)) return [{ title: "declension", tables: [caseTable(sg, null, [voc?.[0] ?? sg[0], ""])] }];
+  return [{ title: "declension", tables: [caseTable(sg, pl, voc ?? [sg[0], pl[0]])] }];
 }
 
 function expandGen(nom: string, suf: string): string {
@@ -242,7 +288,7 @@ function expandGen(nom: string, suf: string): string {
 const PRONOMINAL = new Set(["ūnus", "nūllus", "ūllus", "sōlus", "tōtus", "alius", "alter", "uter", "neuter", "uterque"]);
 const CONSONANT_ADJ = new Set(["vetus", "dīves", "pauper", "prīnceps", "particeps", "memor", "compos", "superstes"]);
 
-function adjective(forms: string[]): Paradigm | null {
+function adjective(forms: string[], voc = false): Paradigm | null {
   const [m, f, n] = forms;
   if (!f) return null;
   // plural-only 1st/2nd: paucī -ae -a
@@ -263,17 +309,22 @@ function adjective(forms: string[]): Paradigm | null {
     const neutNom = m === "alius" ? "aliud" : st + "um";
     const gen = (e: string) => (pron ? st + "īus" : st + e);
     const dat = (e: string) => (pron ? st + "ī" : st + e);
+    // vocative: bone, but miser/pulcher unchanged; pronominal and possessive words have none (except meus → mī)
+    const v = voc && !pron && !["suus", "tuus", "vester"].includes(m);
+    const mVoc = m === "meus" ? "mī" : m.endsWith("us") ? st + "e" : m;
+    const V = (x: string) => (v ? [x] : []);
     return genderTables(
       [
-        [m, gen("ī"), dat("ō"), st + "um", st + "ō"],
-        [st + "a", gen("ae"), dat("ae"), st + "am", st + "ā"],
-        [neutNom, gen("ī"), dat("ō"), neutNom, st + "ō"],
+        [m, gen("ī"), dat("ō"), st + "um", st + "ō", ...V(mVoc)],
+        [st + "a", gen("ae"), dat("ae"), st + "am", st + "ā", ...V(st + "a")],
+        [neutNom, gen("ī"), dat("ō"), neutNom, st + "ō", ...V(neutNom)],
       ],
       [
-        [st + "ī", st + "ōrum", st + "īs", st + "ōs", st + "īs"],
-        [st + "ae", st + "ārum", st + "īs", st + "ās", st + "īs"],
-        [st + "a", st + "ōrum", st + "īs", st + "a", st + "īs"],
-      ]
+        [st + "ī", st + "ōrum", st + "īs", st + "ōs", st + "īs", ...V(st + "ī")],
+        [st + "ae", st + "ārum", st + "īs", st + "ās", st + "īs", ...V(st + "ae")],
+        [st + "a", st + "ōrum", st + "īs", st + "a", st + "īs", ...V(st + "a")],
+      ],
+      v
     );
   }
   // 3rd declension
@@ -304,15 +355,101 @@ function adjective(forms: string[]): Paradigm | null {
   }
   if (!st) return null;
   const abl = consonant ? "e" : "ī";
-  const nPl = st + (consonant ? "a" : "ia");
+  // one-ending consonant stems have no neuter plural in use, except vetus → vetera and comparatives
+  const nPl = !consonant ? st + "ia" : m === "vetus" || /ior$/.test(m) ? st + "a" : "—";
   const genPl = st + (consonant ? "um" : "ium");
-  const mf = (nom: string) => [nom, st + "is", st + "ī", st + "em", st + abl];
-  const mfPl = [st + "ēs", genPl, st + "ibus", st + "ēs", st + "ibus"];
+  const V = (x: string) => (voc ? [x] : []);
+  const mf = (nom: string) => [nom, st + "is", st + "ī", st + "em", st + abl, ...V(nom)];
+  const mfPl = [st + "ēs", genPl, st + "ibus", st + "ēs", st + "ibus", ...V(st + "ēs")];
   return genderTables(
-    [mf(mNom), mf(fNom), [nNom, st + "is", st + "ī", nNom, st + abl]],
-    [mfPl, mfPl, [nPl, genPl, st + "ibus", nPl, st + "ibus"]]
+    [mf(mNom), mf(fNom), [nNom, st + "is", st + "ī", nNom, st + abl, ...V(nNom)]],
+    [mfPl, mfPl, [nPl, genPl, st + "ibus", nPl, st + "ibus", ...V(nPl)]],
+    voc
   );
 }
+
+// ---------------------------------------------------------------- comparison
+
+/** Irregular comparison: [comparative, superlative, adverb, adverb comparative, adverb superlative] */
+const IRREGULAR_CMP: Record<string, string[]> = {
+  bonus: ["melior", "optimus", "bene", "melius", "optimē"],
+  malus: ["peior", "pessimus", "male", "peius", "pessimē"],
+  māgnus: ["maior", "maximus", "magnopere", "magis", "maximē"],
+  parvus: ["minor", "minimus", "paulum", "minus", "minimē"],
+  multus: ["plūs", "plūrimus", "multum", "plūs", "plūrimum"],
+  facilis: ["facilior", "facillimus", "facile", "facilius", "facillimē"],
+  difficilis: ["difficilior", "difficillimus", "difficulter", "difficilius", "difficillimē"],
+  superus: ["superior", "summus/suprēmus", "—", "—", "—"],
+  īnferus: ["īnferior", "īnfimus/īmus", "—", "—", "—"],
+  posterus: ["posterior", "postrēmus", "—", "—", "—"],
+  vetus: ["vetustior", "veterrimus", "—", "—", "—"],
+  dīves: ["dīvitior/dītior", "dīvitissimus/dītissimus", "—", "—", "—"],
+  audāx: ["audācior", "audācissimus", "audācter", "audācius", "audācissimē"],
+  dexter: ["dexterior", "dextimus", "—", "—", "—"],
+  novus: ["recentior", "novissimus", "novē", "—", "novissimē"],
+  vērus: ["vērior", "vērissimus", "vērē/vērō", "vērius", "vērissimē"],
+};
+/** Gradable adjectives with no adverb in use */
+const NO_ADVERB = new Set(["pauper", "volucer"]);
+const ILLIMUS = new Set(["facilis", "difficilis", "similis", "dissimilis", "gracilis", "humilis"]);
+// words with no degrees: pronominal, numeral, ordinal, already comparative/superlative, or not gradable
+const NO_CMP = new Set([
+  "ūnus", "nūllus", "ūllus", "sōlus", "tōtus", "alius", "alter", "uter", "neuter", "uterque", "suus", "tuus", "meus",
+  "noster", "vester", "prīmus", "secundus", "tertius", "tantus", "tālis", "cūnctus", "omnis", "cēterus", "reliquus",
+  "medius", "extrēmus", "ultimus", "prior", "singulī", "paucī", "prīnceps", "pār", "potis", "dīvus", "aureus",
+  "rēgius", "mortālis", "pūblicus", "prīvātus", "commūnis", "praesēns", "ingēns", "sacer", "fessus", "nūdus",
+  "plēnus", "perpetuus", "aeternus", "hūmānus", "vīcīnus", "dubius", "varius", "proprius", "ēgregius", "nimius",
+  "vacuus", "antīquus", "aequus", "pius", "mundus", "īnferus",
+]);
+
+/**
+ * Degrees of an adjective and its adverb. `genSg` is the masculine genitive singular
+ * from the declension table, which gives the stem (bonī → bon-, ācris → ācr-).
+ */
+function comparison(m: string, genSg: string): FormSection | null {
+  if (NO_CMP.has(m) && !IRREGULAR_CMP[m]) return null;
+  let row: string[];
+  if (IRREGULAR_CMP[m]) row = IRREGULAR_CMP[m];
+  else {
+    const third = genSg.endsWith("is");
+    const st = third ? genSg.slice(0, -2) : genSg.slice(0, -1);
+    // -eus/-ius/-uus adjectives compare with magis/maximē
+    if (!third && /[eiu]us$/.test(m)) return null;
+    const sup = m.endsWith("er") ? m + "rimus" : ILLIMUS.has(m) ? st + "limus" : st + "issimus";
+    const adv = !third ? st + "ē" : st.endsWith("nt") ? st + "er" : st + "iter";
+    row = NO_ADVERB.has(m) ? [st + "ior", sup, "—", "—", "—"] : [st + "ior", sup, adv, st + "ius", sup.replace(/us$/, "ē")];
+  }
+  const [cmp, sup, adv, advCmp, advSup] = row;
+  return {
+    title: "comparison",
+    tables: [
+      {
+        cols: ["adjectiveCol", "adverbCol"],
+        rows: [
+          { label: "positive", cells: [m, adv] },
+          { label: "comparative", cells: [cmp, advCmp] },
+          { label: "superlative", cells: [sup, advSup] },
+        ],
+      },
+    ],
+  };
+}
+
+/** Adverbs that have degrees of their own (adverbs formed from listed adjectives are covered there). */
+const ADVERB_CMP: Record<string, [string, string]> = {
+  saepe: ["saepius", "saepissimē"],
+  diū: ["diūtius", "diūtissimē"],
+  bene: ["melius", "optimē"],
+  male: ["peius", "pessimē"],
+  parum: ["minus", "minimē"],
+  longē: ["longius", "longissimē"],
+  celeriter: ["celerius", "celerrimē"],
+  breviter: ["brevius", "brevissimē"],
+  fēlīciter: ["fēlīcius", "fēlīcissimē"],
+  aegrē: ["aegrius", "aegerrimē"],
+  vērē: ["vērius", "vērissimē"],
+  certē: ["certius", "certissimē"],
+};
 
 // ---------------------------------------------------------------- verbs
 
@@ -334,8 +471,12 @@ interface Present {
   subj: string[];
   impfSubj: string[];
   imper: [string, string] | null;
+  /** Future imperative: 2sg, 3sg, 2pl, 3pl (amātō, amātō, amātōte, amantō) */
+  futImper: string[] | null;
   inf: string;
   part: string | null;
+  /** Gerund/gerundive stem: amand-, eund- */
+  nd: string | null;
 }
 interface PresentPassive {
   pres: string[];
@@ -369,6 +510,14 @@ const PRES_P: Record<Conj, string> = {
   4: "ior īris ītur īmur īminī iuntur",
 };
 const IMPER_A: Record<Conj, [string, string]> = { 1: ["ā", "āte"], 2: ["ē", "ēte"], 3: ["e", "ite"], 5: ["e", "ite"], 4: ["ī", "īte"] };
+const FUT_IMPER: Record<Conj, string> = {
+  1: "ātō ātō ātōte antō",
+  2: "ētō ētō ētōte entō",
+  3: "itō itō itōte untō",
+  5: "itō itō itōte iuntō",
+  4: "ītō ītō ītōte iuntō",
+};
+const ND: Record<Conj, string> = { 1: "and", 2: "end", 3: "end", 5: "iend", 4: "iend" };
 const IMPER_P: Record<Conj, [string, string]> = {
   1: ["āre", "āminī"],
   2: ["ēre", "ēminī"],
@@ -388,8 +537,10 @@ function presentActive(st: string, c: Conj): Present {
     subj: c === 1 ? persons(st, "em ēs et ēmus ētis ent") : persons(st + th.subj, "am ās at āmus ātis ant"),
     impfSubj: persons(infStem, "em ēs et ēmus ētis ent"),
     imper: [st + IMPER_A[c][0], st + IMPER_A[c][1]],
+    futImper: persons(st, FUT_IMPER[c]),
     inf: st + th.inf,
     part: st + th.part,
+    nd: st + ND[c],
   };
 }
 
@@ -412,7 +563,9 @@ function presentPassive(st: string, c: Conj): PresentPassive {
 /** Irregular present systems, keyed by base verb; compounds add a prefix. */
 function irregularPresent(base: string, prefix: string): Present | null {
   const pre = (xs: string[]) => xs.map((x) => (prefix === "prō" && x.startsWith("e") ? "prōd" : prefix) + x);
-  const mk = (p: Omit<Present, "pres" | "impf" | "fut" | "subj" | "impfSubj"> & Record<"pres" | "impf" | "fut" | "subj" | "impfSubj", string>): Present => ({
+  type Spec = Omit<Present, "pres" | "impf" | "fut" | "subj" | "impfSubj" | "futImper" | "nd"> &
+    Record<"pres" | "impf" | "fut" | "subj" | "impfSubj", string> & { futImper?: string; nd?: string };
+  const mk = (p: Spec): Present => ({
     pres: pre(ends(p.pres)),
     impf: pre(ends(p.impf)),
     fut: pre(ends(p.fut)),
@@ -421,10 +574,12 @@ function irregularPresent(base: string, prefix: string): Present | null {
     imper: p.imper && (pre(p.imper) as [string, string]),
     inf: pre([p.inf])[0],
     part: p.part && pre([p.part])[0],
+    futImper: p.futImper ? pre(ends(p.futImper)) : null,
+    nd: p.nd ? pre([p.nd])[0] : null,
   });
   switch (base) {
     case "sum":
-      return mk({ ...SUM, imper: ["es", "este"], inf: "esse", part: null });
+      return mk({ ...SUM, imper: ["es", "este"], futImper: "estō estō estōte suntō", inf: "esse", part: null });
     case "possum":
       return mk({
         pres: "possum potes potest possumus potestis possunt",
@@ -444,8 +599,10 @@ function irregularPresent(base: string, prefix: string): Present | null {
         subj: "eam eās eat eāmus eātis eant",
         impfSubj: "īrem īrēs īret īrēmus īrētis īrent",
         imper: ["ī", "īte"],
+        futImper: "ītō ītō ītōte euntō",
         inf: "īre",
         part: "iēns",
+        nd: "eund",
       });
     case "ferō":
       return mk({
@@ -455,8 +612,10 @@ function irregularPresent(base: string, prefix: string): Present | null {
         subj: "feram ferās ferat ferāmus ferātis ferant",
         impfSubj: "ferrem ferrēs ferret ferrēmus ferrētis ferrent",
         imper: ["fer", "ferte"],
+        futImper: "fertō fertō fertōte feruntō",
         inf: "ferre",
         part: "ferēns",
+        nd: "ferend",
       });
     case "volō":
       return mk({
@@ -468,6 +627,7 @@ function irregularPresent(base: string, prefix: string): Present | null {
         imper: null,
         inf: "velle",
         part: "volēns",
+        nd: "volend",
       });
     case "nōlō":
       return mk({
@@ -477,6 +637,7 @@ function irregularPresent(base: string, prefix: string): Present | null {
         subj: "nōlim nōlīs nōlit nōlīmus nōlītis nōlint",
         impfSubj: "nōllem nōllēs nōllet nōllēmus nōllētis nōllent",
         imper: ["nōlī", "nōlīte"],
+        futImper: "nōlītō nōlītō nōlītōte nōluntō",
         inf: "nōlle",
         part: "nōlēns",
       });
@@ -505,6 +666,19 @@ function irregularPresent(base: string, prefix: string): Present | null {
   }
   return null;
 }
+
+const EO_PASSIVE = (prefix: string): PresentPassive => {
+  const pp = (e: string) => ends(e).map((x) => prefix + x);
+  return {
+    pres: pp("eor īris ītur īmur īminī euntur"),
+    impf: pp("ībar ībāris ībātur ībāmur ībāminī ībantur"),
+    fut: pp("ībor īberis ībitur ībimur ībiminī ībuntur"),
+    subj: pp("ear eāris eātur eāmur eāminī eantur"),
+    impfSubj: pp("īrer īrēris īrētur īrēmur īrēminī īrentur"),
+    imper: [prefix + "īre", prefix + "īminī"],
+    inf: prefix + "īrī",
+  };
+};
 
 const FERO_PASSIVE = (prefix: string): PresentPassive => {
   const p = presentPassive(prefix + "fer", 3);
@@ -552,6 +726,24 @@ interface VerbParts {
   irregular: { base: string; prefix: string } | null;
   /** audeō audēre ausus sum: active present system, perfect formed like a deponent's, no passive */
   semiDeponent?: boolean;
+  /** Supine (amātum); kept for intransitive verbs that have no passive participle */
+  sup?: string | null;
+  /** Future active participle when it isn't the supine + -ūrus (futūrus, moritūrus) */
+  fap?: string | null;
+}
+
+/** Verbs with no personal passive: their supine gives a supine and future participle, but no "ventus". */
+const INTRANSITIVE = new Set(
+  ("veniō adveniō perveniō conveniō stō cōnstō cadō accidō iaceō placeō cēdō accēdō discēdō prōcēdō recēdō " +
+    "maneō sedeō currō occurrō noceō valeō pateō lateō careō appāreō pāreō serviō dormiō studeō doleō ārdeō sonō " +
+    "pergō errō properō pugnō vacō labōrō peccō crēscō quiēscō surgō fluō vīvō dēscendō pertineō parcō").split(" ")
+);
+/** Compounds of eō that take an object, and so have a passive (flūmen trānsītur) */
+/** Transitive verbs listed without a supine: they still have a present-system passive and a gerundive (metuendus) */
+const TRANSITIVE_NO_SUPINE = new Set(["metuō", "poscō", "discō", "timeō"]);
+const TRANSITIVE_EO = new Set(["trānseō", "subeō", "adeō", "ineō", "praetereō"]);
+const FAP: Record<string, string> = {
+  ōdī: "ōsūrus", doleō: "dolitūrus", noceō: "nocitūrus", sonō: "sonātūrus", morior: "moritūrus", orior: "oritūrus", nāscor: "nāscitūrus", pariō: "paritūrus", fruor: "fruitūrus",
 }
 
 function conjFromInf(lemma: string, inf: string, deponent: boolean): Conj | null {
@@ -588,14 +780,17 @@ export function verbParts(hw: string, detail: string | undefined): VerbParts | n
       const ppp = base === "fīō" ? full(rest[0]) : full(rest[1])?.replace(/um$/, "us") ?? null;
       return {
         lemma, conj: null, stem: "", deponent: false, irregular: { base, prefix },
-        perf: base === "fīō" ? null : perf, ppp: base === "ferō" || base === "fīō" ? ppp : null,
+        perf: base === "fīō" ? null : perf,
+        ppp: base === "ferō" || base === "fīō" ? ppp : TRANSITIVE_EO.has(lemma) ? full(rest[1])?.replace(/um$/, "us") ?? null : null,
+        sup: base === "eō" || base === "ferō" ? full(rest[1]) : null,
+        fap: base === "sum" ? (prefix === "ab" ? "ā" : prefix) + "futūrus" : null,
       };
     }
   }
 
   // perfect-only verbs: meminī meminisse, ōdī ōdisse, coepī coepisse
   if (lemma.endsWith("ī") && infRaw.endsWith("isse")) {
-    return { lemma, conj: null, stem: "", perf: lemma, ppp: rest[0]?.endsWith("us") ? rest[0] : null, deponent: false, irregular: null };
+    return { lemma, conj: null, stem: "", perf: lemma, ppp: rest[0]?.endsWith("us") ? rest[0] : null, deponent: false, irregular: null, fap: FAP[lemma] ?? null };
   }
 
   // the infinitive tells us the conjugation; abbreviated ones also reveal the compound prefix
@@ -611,7 +806,8 @@ export function verbParts(hw: string, detail: string | undefined): VerbParts | n
       inf = "-" + s; // conjugation is decided from the ending alone
     }
   }
-  const conj = conjFromInf(lemma, inf, deponent);
+  // orior orīrī: 3rd -iō forms apart from the infinitive (oreris, oritur)
+  const conj = lemma === "orior" ? 5 : conjFromInf(lemma, inf, deponent);
   if (!conj) return null;
   const cut = STEM_CUT[conj][deponent ? 1 : 0];
   if (!lemma.endsWith(cut)) return null;
@@ -632,7 +828,8 @@ export function verbParts(hw: string, detail: string | undefined): VerbParts | n
   let perf: string | null;
   let ppp: string | null;
   if (!deponent && rest[0]?.endsWith("us") && rest[1] === "sum") {
-    return { lemma, conj, stem, perf: null, ppp: expand(rest[0]), deponent, irregular: null, semiDeponent: true };
+    const ppp = expand(rest[0]);
+    return { lemma, conj, stem, perf: null, ppp, deponent, irregular: null, semiDeponent: true, sup: lemma === "soleō" ? null : ppp?.replace(/us$/, "um") };
   }
   if (deponent) {
     perf = null;
@@ -642,11 +839,38 @@ export function verbParts(hw: string, detail: string | undefined): VerbParts | n
     const sup = rest[0] ? expand(rest[1]) : conj === 1 ? stem + "ātum" : conj === 4 ? stem + "ītum" : null;
     ppp = sup?.endsWith("um") ? sup.slice(0, -2) + "us" : null;
   }
-  return { lemma, conj, stem, perf, ppp, deponent, irregular: null };
+  const sup = lemma === "morior" ? null : ppp?.replace(/us$/, "um") ?? null;
+  if (INTRANSITIVE.has(lemma)) ppp = null;
+  return { lemma, conj, stem, perf, ppp, deponent, irregular: null, sup, fap: FAP[lemma] ?? null };
+}
+
+/** Gerund stem: from the present system, or for deponents from the conjugation (hortand-). */
+function mainNd(v: VerbParts, act: Present | null): string | null {
+  if (act) return act.nd;
+  if (v.lemma === "reor") return "reend";
+  if (v.deponent && v.conj) return v.stem + ND[v.conj];
+  return null;
+}
+
+/** Impersonal 2nd-conjugation verbs (licet licēre licuit): 3rd singular forms only. */
+function impersonal(hw: string): Paradigm | null {
+  const [pres, inf, perfRaw] = parseHeadword(hw)[0].forms.map((f) => f.replace(/,$/, ""));
+  if (!pres?.endsWith("et") || !perfRaw) return null;
+  const st = pres.slice(0, -2);
+  const perf = perfRaw.startsWith("-") ? st + perfRaw.slice(1) : perfRaw;
+  const pf = perf.slice(0, -2);
+  // licet licuit / licitum est: the second perfect is periphrastic
+  const alt = hw.match(/(\S+um) est/)?.[1];
+  const or = (f: string, aux: string) => (alt ? `${f}/${alt} ${aux}` : f);
+  return [
+    { title: "indicativeActive", tables: [list([["tensePres", pres], ["tenseImpf", st + "ēbat"], ["tenseFut", st + "ēbit"], ["tensePerf", or(perf, "est")], ["tensePlupf", or(pf + "erat", "erat")], ["tenseFutPf", or(pf + "erit", "erit")]])] },
+    { title: "subjunctiveActive", tables: [list([["tensePres", st + "eat"], ["tenseImpf", st + "ēret"], ["tensePerf", or(pf + "erit", "sit")], ["tensePlupf", or(pf + "isset", "esset")]])] },
+    { title: "nonFinite", tables: [{ title: "infinitives", ...list([["tensePres", inf.startsWith("-") ? st + inf.slice(1) : inf], ["tensePerf", pf + "isse"]]) }] },
+  ];
 }
 
 function verb(hw: string, detail: string | undefined): Paradigm | null {
-  if (detail === "impersonal") return null;
+  if (detail === "impersonal") return impersonal(hw);
   const v = verbParts(hw, detail);
   if (!v) return null;
   let act: Present | null = null;
@@ -654,6 +878,7 @@ function verb(hw: string, detail: string | undefined): Paradigm | null {
   if (v.irregular) {
     act = irregularPresent(v.irregular.base, v.irregular.prefix);
     if (v.irregular.base === "ferō") pass = FERO_PASSIVE(v.irregular.prefix);
+    if (v.irregular.base === "eō" && v.ppp) pass = EO_PASSIVE(v.irregular.prefix);
     if (v.irregular.base === "fīō") {
       pass = { ...act!, imper: act!.imper, inf: act!.inf };
       act = null;
@@ -673,9 +898,16 @@ function verb(hw: string, detail: string | undefined): Paradigm | null {
       pass[k] = fix(pass[k]);
     }
     act.imper = fix(act.imper!) as [string, string];
+    act.futImper = fix(act.futImper!);
+    pass.imper = fix(pass.imper!) as [string, string];
     act.inf = fix([act.inf])[0];
     pass.inf = fix([pass.inf])[0];
   }
+  if (pass && v.lemma === "orior") pass.inf = "orīrī";
+  if (act && v.lemma === "sciō") act.imper = null; // the future scītō, scītōte serves
+  if (act && v.lemma === "soleō") [act.imper, act.futImper] = [null, null];
+  // transitive verbs listed without a supine still have the present-system passive
+  const passNoPerf = !v.ppp && TRANSITIVE_NO_SUPINE.has(v.lemma);
   // fac, dīc, dūc
   if (act?.imper && /(dīcō|dūcō)$|^faciō$/.test(v.lemma)) act.imper[0] = act.imper[0].slice(0, -1);
 
@@ -686,7 +918,9 @@ function verb(hw: string, detail: string | undefined): Paradigm | null {
     const xs = persons(P, e);
     return eo && P.endsWith("i") ? xs.map((x) => x.replace(/iis/, "īs")) : xs;
   };
-  const fap = v.ppp ? v.ppp.replace(/us$/, "ūrus") : null;
+  const sup = v.sup !== undefined ? v.sup : v.ppp?.replace(/us$/, "um") ?? null;
+  const fap = v.fap ?? (sup ? sup.replace(/um$/, "ūrus") : null);
+  const nd = mainNd(v, act);
   const sections: Paradigm = [];
 
   // Deponents (and fīō) use passive forms with active meaning
@@ -725,8 +959,24 @@ function verb(hw: string, detail: string | undefined): Paradigm | null {
     sections.push({ title: "subjunctiveActive", tables: t });
   }
   const imper = mainP ? pass?.imper : act?.imper;
-  if (imper) {
-    sections.push({ title: "imperative", tables: [{ cols: ["singular", "plural"], rows: [{ label: "person2", cells: imper }] }] });
+  const futImper = mainP ? null : v.lemma === "meminī" ? ["mementō", "mementō", "mementōte", "—"] : act?.futImper;
+  if (imper || futImper) {
+    sections.push({
+      title: "imperative",
+      tables: [
+        ...(imper ? [{ title: "tensePres" as StringKey, cols: ["singular", "plural"] as StringKey[], rows: [{ label: "person2" as StringKey, cells: imper }] }] : []),
+        ...(futImper
+          ? [{
+              title: "tenseFut" as StringKey,
+              cols: ["singular", "plural"] as StringKey[],
+              rows: [
+                { label: "person2" as StringKey, cells: [futImper[0], futImper[2]] },
+                { label: "person3" as StringKey, cells: [futImper[1], futImper[3]] },
+              ],
+            }]
+          : []),
+      ],
+    });
   }
   sections.push({
     title: "nonFinite",
@@ -740,10 +990,11 @@ function verb(hw: string, detail: string | undefined): Paradigm | null {
             ? [["presentActive", act?.inf], ["perfectActive", `${semi} esse`], ["futureActive", fap && `${fap} esse`]]
             : [
                 ["presentActive", act?.inf],
-                ["presentPassive", v.ppp ? pass?.inf : null],
+                ["presentPassive", v.ppp || passNoPerf ? pass?.inf : null],
                 ["perfectActive", P && pf("isse")[0]],
                 ["perfectPassive", v.ppp && `${v.ppp} esse`],
                 ["futureActive", fap && `${fap} esse`],
+                ["futurePassive", v.ppp && sup && `${sup} īrī`],
               ]
         ),
       },
@@ -751,27 +1002,42 @@ function verb(hw: string, detail: string | undefined): Paradigm | null {
         title: "participles" as StringKey,
         ...list(
           mainP
-            ? [["tensePres", v.deponent && v.conj ? v.stem + THEME[v.conj].part : null], ["tensePerf", v.ppp], ["tenseFut", fap]]
+            ? [["tensePres", v.deponent && v.conj && v.lemma !== "reor" ? v.stem + THEME[v.conj].part : null], ["tensePerf", v.ppp], ["tenseFut", fap]]
             : [["presentActive", act?.part], [semi ? "tensePerf" : "perfectPassive", v.ppp], ["futureActive", fap]]
         ),
       },
     ].filter((t) => t.rows.length),
   });
-  if (!mainP && pass && v.ppp && !v.irregular) {
+  if (nd || sup) {
+    sections.push({
+      title: "gerundSection",
+      tables: [
+        ...(nd ? [{ title: "gerund" as StringKey, ...list([["caseGen", nd + "ī"], ["caseDat", nd + "ō"], ["caseAcc", nd + "um"], ["caseAbl", nd + "ō"]]) }] : []),
+        // intransitive verbs only use the gerundive impersonally (eundum est)
+        ...(nd && (v.ppp || mainP || passNoPerf) && v.lemma !== "soleō" ? [{ title: "gerundive" as StringKey, ...list([["genderM", nd + "us"], ["genderF", nd + "a"], ["genderN", nd + "um"]]) }] : []),
+        ...(sup ? [{ title: "supine" as StringKey, ...list([["caseAcc", sup], ["caseAbl", sup.replace(/um$/, "ū")]]) }] : []),
+      ],
+    });
+  }
+  if (!mainP && pass && (v.ppp || passNoPerf) && (!v.irregular || v.irregular.base === "ferō" || v.irregular.base === "eō")) {
+    const ppp = v.ppp;
     sections.push({
       title: "indicativePassive",
       tables: [
         tense("tensePres", pass.pres), tense("tenseImpf", pass.impf), tense("tenseFut", pass.fut),
-        tense("tensePerf", compound(v.ppp, SUM.pres)), tense("tensePlupf", compound(v.ppp, SUM.impf)), tense("tenseFutPf", compound(v.ppp, SUM.fut)),
+        ...(ppp ? [tense("tensePerf", compound(ppp, SUM.pres)), tense("tensePlupf", compound(ppp, SUM.impf)), tense("tenseFutPf", compound(ppp, SUM.fut))] : []),
       ],
     });
     sections.push({
       title: "subjunctivePassive",
       tables: [
         tense("tensePres", pass.subj), tense("tenseImpf", pass.impfSubj),
-        tense("tensePerf", compound(v.ppp, SUM.subj)), tense("tensePlupf", compound(v.ppp, SUM.impfSubj)),
+        ...(ppp ? [tense("tensePerf", compound(ppp, SUM.subj)), tense("tensePlupf", compound(ppp, SUM.impfSubj))] : []),
       ],
     });
+    if (pass.imper) {
+      sections.push({ title: "imperativePassive", tables: [{ cols: ["singular", "plural"], rows: [{ label: "person2", cells: pass.imper }] }] });
+    }
   }
   return sections.filter((s) => s.tables.length);
 }
@@ -782,11 +1048,33 @@ function verb(hw: string, detail: string | undefined): Paradigm | null {
 export function paradigm(hw: string, pos: string, detail?: string): Paradigm | null {
   const parts = parseHeadword(hw)[0];
   const [first, second] = parts.forms.map((f) => f.replace(/,$/, ""));
+  const all = parseHeadword(hw);
+  if (pos === "noun" && all.length > 1) {
+    const tables = all.flatMap((p) => {
+      const [nom, gen] = p.forms.map((f) => f.replace(/,$/, ""));
+      const t = (FIXED[nom] ?? noun(nom, gen, p.note))?.[0].tables[0];
+      const g: StringKey | undefined = /\bm\./.test(p.note) ? "genderM" : /\bf\./.test(p.note) ? "genderF" : undefined;
+      if (!t) return [];
+      // dea and fīlia keep -ābus apart from the masculine in the dat./abl. plural
+      const rows = nom === "dea" || nom === "fīlia" ? t.rows.map((r) => (r.label === "caseDat" || r.label === "caseAbl" ? { ...r, cells: [r.cells[0], nom === "dea" ? "deābus" : "fīliīs/fīliābus"] } : r)) : t.rows;
+      return [{ ...t, rows, title: g }];
+    });
+    if (tables.length) return [{ title: "declension", tables }];
+  }
   if (FIXED[first]) return FIXED[first];
   if (detail === "indeclinable" || detail === "numeral") return null;
   if (pos === "verb") return verb(hw, detail);
   if (pos === "noun") return noun(first, second, parts.note);
-  if (pos === "adjective" || pos === "pronoun") return adjective(parts.forms);
+  if (pos === "adjective") {
+    const decl = adjective(parts.forms, true);
+    const cmp = decl && comparison(first, decl[0].tables[0].rows[1].cells[0]);
+    return decl && cmp ? [...decl, cmp] : decl;
+  }
+  if (pos === "pronoun") return adjective(parts.forms, first === "meus"); // mī fīlī
+  if (pos === "adverb" && ADVERB_CMP[first]) {
+    const [cmp, sup] = ADVERB_CMP[first];
+    return [{ title: "comparison", tables: [{ cols: [], rows: [{ label: "positive", cells: [first] }, { label: "comparative", cells: [cmp] }, { label: "superlative", cells: [sup] }] }] }];
+  }
   return null;
 }
 
@@ -838,3 +1126,7 @@ export function wordMatcher(hw: string, pos: string, detail?: string): (token: s
     );
   };
 }
+
+/** File-safe audio key that keeps vowel length: "amāvī" → "ama_vi_" (shared with tts/ and the form-audio player). */
+export const formKey = (form: string) =>
+  form.normalize("NFD").toLowerCase().replace(/̄/g, "_").replace(/[^a-z_]/g, "");

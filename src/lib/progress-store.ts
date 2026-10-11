@@ -23,7 +23,9 @@ const emptyProgress = (): Progress => ({
 /** Imported/stored settings may come from older versions or hand-edited files. */
 function sanitizeSettings(s: Settings): Settings {
   const rate = (SPEECH_RATES as readonly number[]).includes(s.speechRate) ? s.speechRate : DEFAULT_SETTINGS.speechRate;
-  return { ...s, speechRate: rate };
+  const pron = (["classical", "ecclesiastical", "both"] as const).includes(s.pron) ? s.pron : DEFAULT_SETTINGS.pron;
+  const classicalVoice = s.classicalVoice === "phonetic" ? "phonetic" : "neural";
+  return { ...s, speechRate: rate, pron, classicalVoice };
 }
 
 /** Validate and normalise untrusted data (from storage or an imported file). */
