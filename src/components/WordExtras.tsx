@@ -31,8 +31,12 @@ function Derivatives({ der }: { der: NonNullable<Word["der"]> }) {
   );
 }
 
-/** Everything below the headword card: derivatives, facts and review state, and the form tables. */
-export default function WordExtras({ word }: { word: Word }) {
+/**
+ * Everything below the headword card: derivatives, facts and review state, and the form tables.
+ * `facts={false}` (study) leaves out the facts table: the card already shows them, and its review
+ * row would contradict the rating buttons' intervals.
+ */
+export default function WordExtras({ word, facts = true }: { word: Word; facts?: boolean }) {
   const { t, tl } = useT();
   const progress = useProgress();
   const now = useNow();
@@ -55,14 +59,16 @@ export default function WordExtras({ word }: { word: Word }) {
   return (
     <>
       {word.der && <Derivatives der={word.der} />}
-      <dl className="mt-4 divide-y divide-line rounded-2xl border border-line bg-surface">
-        {rows.map(([k, v]) => (
-          <div key={k} className="flex justify-between gap-4 px-4 py-3 text-sm">
-            <dt className="text-muted">{k}</dt>
-            <dd className="text-right font-medium">{v}</dd>
-          </div>
-        ))}
-      </dl>
+      {facts && (
+        <dl className="mt-4 divide-y divide-line rounded-2xl border border-line bg-surface">
+          {rows.map(([k, v]) => (
+            <div key={k} className="flex justify-between gap-4 px-4 py-3 text-sm">
+              <dt className="text-muted">{k}</dt>
+              <dd className="text-right font-medium">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
       <Paradigm word={word} />
     </>
   );

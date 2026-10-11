@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Gate from "@/components/Gate";
 import { useT, type StringKey } from "@/lib/i18n";
 import { SPEECH_RATES } from "@/lib/audio";
-import { downloadAudio } from "@/lib/offline";
+import { downloadAudio, offlineAudioState } from "@/lib/offline";
 import { dayKey } from "@/lib/progress-store-pure";
 import { exportProgress, importProgress, resetProgress, updateSettings, useProgress } from "@/lib/progress-store";
 import type { Settings } from "@/lib/types";
@@ -278,6 +278,9 @@ export default function SettingsForm() {
       <Section title={t("secOffline")}>
         <div className="px-4 py-3">
           <p className="text-sm text-muted">{t("offlineHint")}</p>
+          {dl === null && offlineAudioState(s) === "stale" && (
+            <p className="mt-2 text-sm text-accent">{t("offlineStale")}</p>
+          )}
           <button className={`${btn} mt-3`} onClick={onDownload} disabled={dl !== null || !data}>
             {dl === null ? t("downloadAudio") : t("downloading", { n: Math.round(dl * 100) })}
           </button>

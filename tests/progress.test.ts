@@ -101,3 +101,9 @@ test("reset keeps settings", () => {
   assert.deepEqual(p.cards, {});
   assert.equal(p.settings.uiLang, "zh");
 });
+
+test("settings saved before the pronunciation choice keep both recordings", () => {
+  const p = store.parseProgress({ version: 1, cards: {}, log: {}, settings: { autoplay: false } });
+  assert.equal(p?.settings.pron, "both");
+  assert.equal(store.parseProgress({ version: 1, cards: {}, log: {}, settings: { pron: "classical" } })?.settings.pron, "classical");
+});

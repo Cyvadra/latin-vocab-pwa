@@ -297,7 +297,7 @@ function Running({
 
       {flipped && (
         <div className="pb-2">
-          <WordExtras word={word} />
+          <WordExtras word={word} facts={false} />
         </div>
       )}
 

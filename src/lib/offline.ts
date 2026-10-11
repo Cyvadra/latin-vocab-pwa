@@ -3,6 +3,22 @@ import type { AudioSource, Settings, Word } from "./types";
 
 export const AUDIO_CACHE = "latin-audio-v3";
 
+// What the last complete download covered, so Settings can tell when it no longer matches playback.
+const DOWNLOADED_KEY = "latin-audio-downloaded";
+const downloadTag = (s: Pick<Settings, "pron" | "classicalVoice">) => `${AUDIO_CACHE}|${s.pron}|${s.classicalVoice}`;
+
+/** Whether downloaded audio matches these settings: "none" (never downloaded), "current", or "stale". */
+export function offlineAudioState(settings: Pick<Settings, "pron" | "classicalVoice">): "none" | "current" | "stale" {
+  let tag: string | null = null;
+  try {
+    tag = localStorage.getItem(DOWNLOADED_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+  if (!tag) return "none";
+  return tag === downloadTag(settings) ? "current" : "stale";
+}
+
 /**
  * Fetch the recordings the learner listens to (words and example sentences, in the chosen
  * pronunciation and classical voice) into the Cache Storage used by the service worker.
@@ -36,4 +52,9 @@ export async function downloadAudio(
     }
   };
   await Promise.all(Array.from({ length: 6 }, worker));
+  try {
+    localStorage.setItem(DOWNLOADED_KEY, downloadTag(settings));
+  } catch {
+    /* storage unavailable */
+  }
 }

@@ -4,6 +4,8 @@ import { formKey } from "./morph";
 import { SPEECH_RATES, type AudioSource, type Pronunciation, type Settings, type Word } from "./types";
 
 let el: HTMLAudioElement | null = null;
+// Bumped by each play(); an older call that sees a newer one has started must not retry or fall back.
+let generation = 0;
 
 export { SPEECH_RATES };
 
@@ -73,6 +75,7 @@ function speakFallback(text: string, pron: Pronunciation): boolean {
 }
 
 async function play(urls: (string | null)[], text: string, pron: Pronunciation): Promise<boolean> {
+  const gen = ++generation;
   stopAudio();
   for (const url of urls) {
     if (!url) continue;
@@ -85,9 +88,12 @@ async function play(urls: (string | null)[], text: string, pron: Pronunciation):
       await el.play();
       return true;
     } catch {
+      // superseded by a newer play() (which aborted this one): leave the element to it
+      if (gen !== generation) return false;
       /* autoplay blocked or file missing: try the next source */
     }
   }
+  if (gen !== generation) return false;
   return speakFallback(text, pron);
 }
 

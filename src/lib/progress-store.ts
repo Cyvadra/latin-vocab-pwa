@@ -53,7 +53,12 @@ export function parseProgress(raw: unknown): Progress | null {
     version: 1,
     cards,
     log,
-    settings: sanitizeSettings({ ...DEFAULT_SETTINGS, ...(r.settings ?? {}) }),
+    settings: sanitizeSettings({
+      ...DEFAULT_SETTINGS,
+      // settings saved before the pronunciation choice existed always showed both recordings; keep that
+      ...(r.settings && !("pron" in r.settings) ? { pron: "both" as const } : {}),
+      ...(r.settings ?? {}),
+    }),
     updatedAt: typeof r.updatedAt === "number" ? r.updatedAt : 0,
   };
 }

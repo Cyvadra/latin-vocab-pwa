@@ -4,7 +4,10 @@ import type { StringKey } from "./strings";
 import type { Progress, Word } from "./types";
 
 export interface Cell {
+  /** The form to show: the first of the slot's alternatives */
   form: string;
+  /** Every alternative for the slot ("dī/deī"), so a form matching any of them counts as filling it */
+  alts: string[];
   /** Labels describing the slot, most general first: [mood/voice?, tense or number?, row, column?] */
   parse: StringKey[];
 }
@@ -28,15 +31,16 @@ export function cells(par: Paradigm): Cell[] {
     for (const t of s.tables) {
       for (const r of t.rows) {
         r.cells.forEach((c, i) => {
-          const form = c.split("/")[0].trim();
           // periphrastic forms ("amātus sum") and gaps can't be told apart from their parts
-          if (!form || form === "—" || form.includes(" ")) return;
+          const alts = c.split("/").map((a) => a.trim()).filter((a) => a && a !== "—" && !a.includes(" "));
+          if (!alts.length) return;
+          const form = alts[0];
           const parse: StringKey[] = [];
           if (s.title !== "declension") parse.push(s.title);
           if (t.title) parse.push(t.title);
           parse.push(r.label);
           if (t.cols[i]) parse.push(t.cols[i]);
-          out.push({ form, parse });
+          out.push({ form, alts, parse });
         });
       }
     }
@@ -65,7 +69,7 @@ const formSets = new WeakMap<Word, Set<string>>();
 const formsOf = (w: Word): Set<string> => {
   if (!formSets.has(w)) {
     const par = paradigmOf(w);
-    formSets.set(w, new Set([plainLatin(w.lemma), ...(par ? cells(par).map((c) => plainLatin(c.form)) : [])]));
+    formSets.set(w, new Set([plainLatin(w.lemma), ...(par ? cells(par).flatMap((c) => c.alts.map(plainLatin)) : [])]));
   }
   return formSets.get(w)!;
 };
@@ -93,7 +97,7 @@ export function makeQuestion(word: Word, pool: Word[], rnd: () => number = Math.
   const target = candidates[Math.floor(rnd() * candidates.length)];
   const same = plainLatin(target.form);
   // every slot this exact form fills is a right answer (e.g. dat./abl. plural); distractors come from the others
-  const correct = new Set(all.filter((c) => plainLatin(c.form) === same).map((c) => parseKey(c.parse)));
+  const correct = new Set(all.filter((c) => c.alts.some((a) => plainLatin(a) === same)).map((c) => parseKey(c.parse)));
   const seen = new Set(correct);
   const distractors: StringKey[][] = [];
   for (const c of shuffle(all, rnd)) {
