@@ -1,7 +1,7 @@
 // Service worker: offline shell, cached word list, and range-capable audio cache.
-const VERSION = "v2";
+const VERSION = "v3";
 const SHELL_CACHE = `latin-shell-${VERSION}`;
-const AUDIO_CACHE = "latin-audio-v2"; // shared with src/lib/offline.ts
+const AUDIO_CACHE = "latin-audio-v3"; // shared with src/lib/offline.ts
 const PRECACHE = ["/", "/study", "/words", "/settings", "/drill", "/data/words.json", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {

@@ -11,6 +11,7 @@ import soundfile as sf
 sys.path.insert(0, str(Path(__file__).parent))
 from audio_utils import trim_and_polish
 from latin_ipa import piper_phonemes, text_ipa
+import ort_threads  # noqa: F401 — before piper creates its session
 from piper import PiperVoice, SynthesisConfig
 
 ap = argparse.ArgumentParser()
@@ -19,6 +20,8 @@ ap.add_argument("--out", default="tts/out/classical-alt")
 ap.add_argument("--sentences", action="store_true")
 ap.add_argument("--forms", help="TSV of (key, form)")
 ap.add_argument("--redo", action="store_true")
+ap.add_argument("--offset", type=int, default=0, help="with --forms: skip this many rows (to split a run across workers)")
+ap.add_argument("--limit", type=int, default=0)
 args = ap.parse_args()
 
 out = Path(args.out) / ("s" if args.sentences else "f" if args.forms else ""); out.mkdir(parents=True, exist_ok=True)
@@ -28,6 +31,10 @@ else:
     db = sqlite3.connect("data/latin.db")
     q = "select word_id, la from sentences" if args.sentences else "select id, lemma from words"
     rows = db.execute(q).fetchall()
+
+rows = rows[args.offset :]
+if args.limit:
+    rows = rows[: args.limit]
 
 voice = PiperVoice.load(args.voice)
 cfg = SynthesisConfig(length_scale=1.5, noise_scale=0.4, noise_w_scale=0.5)

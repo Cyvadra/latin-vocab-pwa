@@ -1,7 +1,7 @@
 import { audioUrl, chosenProns, sentenceAudioUrl, sourcesFor } from "./audio";
 import type { AudioSource, Settings, Word } from "./types";
 
-export const AUDIO_CACHE = "latin-audio-v2";
+export const AUDIO_CACHE = "latin-audio-v3";
 
 /**
  * Fetch the recordings the learner listens to (words and example sentences, in the chosen

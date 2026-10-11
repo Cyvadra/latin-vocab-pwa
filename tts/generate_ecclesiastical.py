@@ -13,6 +13,7 @@ from scipy.signal import resample_poly
 sys.path.insert(0, str(Path(__file__).parent))
 from audio_utils import trim_and_polish
 from ecclesiastical import respell, respell_sentence
+import ort_threads  # noqa: F401 — before piper creates its session
 from piper import PiperVoice, SynthesisConfig
 
 ap = argparse.ArgumentParser()
