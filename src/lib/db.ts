@@ -1,5 +1,6 @@
 import Database from "better-sqlite3";
 import path from "node:path";
+import { wordSlugs, type SlugWord } from "./slug";
 
 let db: Database.Database | null = null;
 
@@ -14,8 +15,9 @@ export interface WordMeta {
   en: string;
 }
 
-export function listWordIds(): number[] {
-  return (open().prepare("SELECT id FROM words ORDER BY id").all() as { id: number }[]).map((r) => r.id);
+export function listWordSlugs(): Map<number, string> {
+  const rows = open().prepare("SELECT id, lemma, freq_rank AS rank FROM words").all() as SlugWord[];
+  return wordSlugs(rows);
 }
 
 export function getWordMeta(id: number): WordMeta | null {

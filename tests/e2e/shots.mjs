@@ -31,7 +31,7 @@ await page.waitForSelector("li");
 await shot("06-words");
 await page.fill("input[type=search]", "amor");
 await shot("07-search");
-await page.goto(base + "/words/51", { waitUntil: "networkidle" });
+await page.goto(base + "/words/amor", { waitUntil: "networkidle" });
 await page.waitForSelector("h1");
 await shot("08-detail");
 await page.goto(base + "/settings", { waitUntil: "networkidle" });

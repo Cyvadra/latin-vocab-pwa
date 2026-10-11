@@ -15,7 +15,7 @@ for (const scheme of ["light", "dark"]) {
   for (const [w, h] of [[390, 844], [320, 568]]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, colorScheme: scheme, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
     const page = await ctx.newPage();
-    const targets = ["/", "/words", "/words/279", "/settings", "/guide", "/study", "/drill"];
+    const targets = ["/", "/words", "/words/et", "/settings", "/guide", "/study", "/drill"];
     for (const path of targets) {
       await page.goto(base + path, { waitUntil: "networkidle" });
       if (path === "/study") {

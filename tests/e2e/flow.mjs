@@ -91,7 +91,7 @@ await step("words: search by meaning and by Latin without macrons", async () => 
 });
 
 await step("word detail page and audio request", async () => {
-  await page.goto(base + "/words/51", { waitUntil: "networkidle" });
+  await page.goto(base + "/words/amor", { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "amor" }).waitFor();
   await page.getByRole("button", { name: "Play audio (Classical)" }).click();
   await page.waitForTimeout(800);
@@ -108,7 +108,7 @@ await step("one pronunciation by default; 'Both' in settings shows each, for the
   assert.ok(audioRequests.some(([u]) => u.includes("/audio/classical/f/amo_rem.mp3")), "form audio requested");
   await page.goto(base + "/settings", { waitUntil: "networkidle" });
   await page.getByRole("radio", { name: /button for each system/ }).click();
-  await page.goto(base + "/words/51", { waitUntil: "networkidle" });
+  await page.goto(base + "/words/amor", { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Play audio (Ecclesiastical)" }).click();
   await page.waitForTimeout(800);
   await page.getByRole("button", { name: "Play sentence (Classical)" }).click();
@@ -127,7 +127,7 @@ await step("form drill: a full round, then the related-words section", async () 
     await page.getByRole("button", { name: "Next" }).click();
   }
   await page.getByText("Round complete").waitFor({ timeout: 2000 });
-  await page.goto(base + "/words/761", { waitUntil: "networkidle" });
+  await page.goto(base + "/words/r%C4%93x", { waitUntil: "networkidle" });
   await page.getByText("Related words").waitFor();
   await page.getByText("regal, royal, reign").waitFor();
 });
@@ -144,7 +144,8 @@ await step("Traditional Chinese script applies to UI and glosses", async () => {
   await page.getByRole("heading", { name: "設定" }).waitFor();
   assert.equal(await page.evaluate(() => document.documentElement.lang), "zh-Hant");
   await page.getByRole("radio", { name: "双语" }).or(page.getByRole("radio", { name: "雙語" })).first().click();
-  await page.goto(base + "/words/14", { waitUntil: "networkidle" });
+  await page.goto(base + "/words/14", { waitUntil: "networkidle" }); // a legacy numeric link
+  await page.waitForURL(/\/words\/ade%C5%8D$/); // rewritten to the lemma (the more frequent adeō)
   const text = await page.locator("main").innerText();
   assert.match(text, /詞性|副詞/, "expected Traditional labels");
   assert.doesNotMatch(text, /副词/, "simplified leaked through");

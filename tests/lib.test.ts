@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DAY_MS, newCard, schedule } from "../src/lib/fsrs";
 import { buildQueue } from "../src/lib/queue";
+import { resolveSlug, wordHref, wordSlugs } from "../src/lib/slug";
 import { addDays, dayKey } from "../src/lib/progress-store-pure";
 import { DEFAULT_SETTINGS, type Progress, type Word } from "../src/lib/types";
 
@@ -60,4 +61,22 @@ test("addDays is calendar based", () => {
   const d = new Date(addDays(new Date(2026, 2, 7, 12).getTime(), 1));
   assert.equal(d.getDate(), 8);
   assert.equal(d.getHours(), 12);
+});
+
+test("word slugs: lemma URLs, numbered homographs, numeric and macron-less fallbacks", () => {
+  const slugs = wordSlugs([
+    { id: 272, lemma: "eō", rank: 90 },
+    { id: 271, lemma: "eō", rank: 40 },
+    { id: 5, lemma: "quī", rank: 3 },
+  ]);
+  assert.equal(slugs.get(271), "eō");
+  assert.equal(slugs.get(272), "eō-2");
+  assert.equal(wordHref(slugs, 5), "/words/qu%C4%AB");
+  assert.equal(resolveSlug("qu%C4%AB", slugs), 5);
+  assert.equal(resolveSlug("quī", slugs), 5);
+  assert.equal(resolveSlug("qui", slugs), 5);
+  assert.equal(resolveSlug("eo-2", slugs), 272);
+  assert.equal(resolveSlug("272", slugs), 272);
+  assert.equal(resolveSlug("999", slugs), null);
+  assert.equal(resolveSlug("nihil", slugs), null);
 });

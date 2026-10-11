@@ -34,7 +34,7 @@ await step("download audio for offline use", async () => {
 });
 
 await step("visit pages once so they are cached", async () => {
-  for (const p of ["/study", "/words", "/words/279", "/guide"]) await page.goto(base + p, { waitUntil: "networkidle" });
+  for (const p of ["/study", "/words", "/words/et", "/guide"]) await page.goto(base + p, { waitUntil: "networkidle" });
 });
 
 await ctx.setOffline(true);
@@ -48,7 +48,7 @@ await step("offline: home, study and words still load", async () => {
 });
 
 await step("offline: audio plays from cache (range request path)", async () => {
-  await page.goto(base + "/words/279", { waitUntil: "domcontentloaded" });
+  await page.goto(base + "/words/et", { waitUntil: "domcontentloaded" });
   await page.getByRole("heading", { name: "et" }).waitFor({ timeout: 10000 });
   const result = await page.evaluate(async () => {
     const a = new Audio("/audio/classical/279.mp3");

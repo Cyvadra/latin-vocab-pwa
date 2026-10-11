@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useEffect } from "react";
 import { AudioPair } from "@/components/AudioButton";
 import Gate from "@/components/Gate";
 import Example from "@/components/Example";
@@ -8,14 +9,23 @@ import WordExtras from "@/components/WordExtras";
 import { formatHeadword } from "@/lib/format";
 import { useT } from "@/lib/i18n";
 import { useProgress } from "@/lib/progress-store";
+import { resolveSlug, wordHref } from "@/lib/slug";
 import { useWords } from "@/lib/words-client";
 
-export default function WordDetail({ id }: { id: number }) {
+export default function WordDetail({ slug }: { slug: string }) {
   const { t, script } = useT();
   const progress = useProgress();
   const { data, error } = useWords();
+  // Old numeric or macron-less links: show the canonical /words/<lemma> in the address bar.
+  useEffect(() => {
+    if (!data) return;
+    const id = resolveSlug(slug, data.slugs);
+    const href = id === null ? null : wordHref(data.slugs, id);
+    if (href && href !== window.location.pathname) window.history.replaceState(null, "", href);
+  }, [data, slug]);
   if (!data || !progress) return <Gate error={error} />;
-  const word = data.byId.get(id);
+  const id = resolveSlug(slug, data.slugs);
+  const word = id === null ? undefined : data.byId.get(id);
   const back = (
     <Link href="/words" className="-ml-1 inline-block py-2 text-sm text-accent">
       ‹ {t("backToWords")}

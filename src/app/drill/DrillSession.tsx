@@ -7,6 +7,7 @@ import { drillPool, makeSession, type Question } from "@/lib/drill";
 import { useT } from "@/lib/i18n";
 import { useProgress } from "@/lib/progress-store";
 import type { StringKey } from "@/lib/strings";
+import { wordHref } from "@/lib/slug";
 import { useWords } from "@/lib/words-client";
 
 const ROUND = 10;
@@ -157,7 +158,7 @@ export default function DrillSession() {
       {formPick !== null && (
         <div className="space-y-3">
           <p className="text-center text-sm">
-            <Link href={`/words/${q.word.id}`} className="text-accent">
+            <Link href={wordHref(data.slugs, q.word.id)} className="text-accent">
               {t("drillSeeTable", { word: q.word.lemma })} ›
             </Link>
           </p>

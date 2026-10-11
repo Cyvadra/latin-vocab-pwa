@@ -1,10 +1,13 @@
 "use client";
 import { useEffect, useState } from "react";
+import { wordSlugs } from "./slug";
 import type { Word } from "./types";
 
 interface WordData {
   words: Word[];
   byId: Map<number, Word>;
+  /** id → URL slug (see slug.ts) */
+  slugs: Map<number, string>;
 }
 
 let cache: Promise<WordData> | null = null;
@@ -16,7 +19,11 @@ export function loadWords(): Promise<WordData> {
         if (!r.ok) throw new Error(`words.json: ${r.status}`);
         return r.json();
       })
-      .then((j: { words: Word[] }) => ({ words: j.words, byId: new Map(j.words.map((w) => [w.id, w])) }))
+      .then((j: { words: Word[] }) => ({
+        words: j.words,
+        byId: new Map(j.words.map((w) => [w.id, w])),
+        slugs: wordSlugs(j.words),
+      }))
       .catch((e) => {
         cache = null; // allow retry
         throw e;

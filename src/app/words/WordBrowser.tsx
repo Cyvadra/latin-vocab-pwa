@@ -7,6 +7,7 @@ import { formatHeadword } from "@/lib/format";
 import { label, useT } from "@/lib/i18n";
 import { useProgress } from "@/lib/progress-store";
 import type { CardState, Word } from "@/lib/types";
+import { wordHref } from "@/lib/slug";
 import { useWords } from "@/lib/words-client";
 
 type Status = "all" | "new" | "learning" | "known";
@@ -117,7 +118,7 @@ export default function WordBrowser() {
                 className={`h-2.5 w-2.5 shrink-0 rounded-full ${DOT[statusOf(progress.cards[w.id])]}`}
                 aria-hidden="true"
               />
-              <Link href={`/words/${w.id}`} className="min-w-0 flex-1 py-1">
+              <Link href={wordHref(data.slugs, w.id)} className="min-w-0 flex-1 py-1">
                 <p className="truncate font-latin text-lg font-semibold leading-tight">
                   {formatHeadword(w.hw)}
                 </p>
