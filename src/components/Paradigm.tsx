@@ -1,7 +1,7 @@
 "use client";
 import { chosenProns, playForm } from "@/lib/audio";
 import { useT } from "@/lib/i18n";
-import { paradigm, type FormTable } from "@/lib/morph";
+import { isInvariable, paradigm, type FormTable } from "@/lib/morph";
 import type { Word } from "@/lib/types";
 
 /** A table cell: each single-word alternative ("domuī/domō") can be tapped to hear it. */
@@ -71,7 +71,7 @@ export default function Paradigm({ word }: { word: Word }) {
   const detail = word.detail?.en;
   if (!sections) {
     // say so for words that don't inflect, rather than showing nothing
-    if (detail !== "indeclinable" && detail !== "numeral" && word.lemma !== "fore") return null;
+    if (!isInvariable(word.hw, detail)) return null;
     return <p className="mt-4 px-1 text-sm text-muted">{t("formsIndeclinable")}</p>;
   }
   return (

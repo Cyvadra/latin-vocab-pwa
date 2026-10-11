@@ -1045,6 +1045,14 @@ function verb(hw: string, detail: string | undefined): Paradigm | null {
 // ---------------------------------------------------------------- entry point
 
 /** pos/detail are the English labels from words.json ("noun", "3rd declension", …). */
+// Defective verbs found in one form only (fore = futūrum esse)
+const SINGLE_FORM = new Set(["fore"]);
+
+/** Words with no inflection at all, as opposed to ones whose tables just aren't generated. */
+export function isInvariable(hw: string, detail?: string): boolean {
+  return detail === "indeclinable" || detail === "numeral" || SINGLE_FORM.has(parseHeadword(hw)[0].forms[0]);
+}
+
 export function paradigm(hw: string, pos: string, detail?: string): Paradigm | null {
   const parts = parseHeadword(hw)[0];
   const [first, second] = parts.forms.map((f) => f.replace(/,$/, ""));

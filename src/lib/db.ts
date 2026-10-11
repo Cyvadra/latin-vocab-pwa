@@ -15,9 +15,12 @@ export interface WordMeta {
   en: string;
 }
 
+// The database is read-only, so build the slug map once rather than once per word page.
+let slugs: Map<number, string> | null = null;
+
 export function listWordSlugs(): Map<number, string> {
-  const rows = open().prepare("SELECT id, lemma, freq_rank AS rank FROM words").all() as SlugWord[];
-  return wordSlugs(rows);
+  slugs ??= wordSlugs(open().prepare("SELECT id, lemma, freq_rank AS rank FROM words").all() as SlugWord[]);
+  return slugs;
 }
 
 export function getWordMeta(id: number): WordMeta | null {

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { attach, paradigm, type Paradigm } from "../src/lib/morph";
+import { attach, isInvariable, paradigm, type Paradigm } from "../src/lib/morph";
 
 /** All forms of a section, row by row. */
 const forms = (p: Paradigm | null, section = 0, table = 0) =>
@@ -170,4 +170,10 @@ test("drill: a choice of word never includes another word that also yields the f
     const q = makeQuestion(lex, pool, rnd);
     if (q && q.form === "lēgis") assert.ok(!q.words.some((w) => w.id === lego.id), "legō offered for lēgis");
   }
+});
+
+test("isInvariable: indeclinables and single-form defectives, not other defectives", () => {
+  assert.equal(isInvariable("fore", "irregular"), true);
+  assert.equal(isInvariable("nihil", "indeclinable"), true);
+  assert.equal(isInvariable("aiō", "irregular"), false);
 });
